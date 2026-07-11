@@ -1,0 +1,171 @@
+{
+  "diagram_id": "90f61bcf-e836-41ff-91dc-f43fdc99eb13",
+  "filename": "test_ecommerce_diagram.png",
+  "created_at": "2026-07-02T11:06:29.039662",
+  "completed_at": "2026-07-02T11:06:34.068511",
+  "architecture_summary": "This architecture represents a modern, resilient e-commerce microservices platform. The system is designed to handle high transaction volumes and read-heavy operations, utilizing an API Gateway to routing traffic to decoupled backend services. Real-time asynchronous communications are managed through RabbitMQ, enabling horizontal scalability of payment processing and inventory updates.",
+  "workflow_explanation": "1. **User Browsing & Cart:** The user interacts with the React Single Page Application (SPA). Product detail reads are served via the Product Catalog Service with Redis caching.\n2. **Checkout Initiation:** The SPA calls the Cart & Order Service to create a pending order. Order status transitions to 'unpaid'.\n3. **Payment Processing:** The client makes a secure tokenized call to the Stripe API. Upon successful payment, Stripe calls our webhook, which updates the Order Service via RabbitMQ messages. This ensures eventual consistency and prevents database locks during high traffic peaks.\n4. **Inventory & Notification:** Once paid, the Inventory Service reduces stock counts and the Notification Service dispatches a transactional confirmation email to the user.",
+  "tech_stack": {
+    "frontend": [
+      "React.js",
+      "Tailwind CSS",
+      "Vite",
+      "Redux Toolkit"
+    ],
+    "backend": [
+      "Python",
+      "FastAPI",
+      "RabbitMQ (Message Broker)",
+      "Stripe SDK"
+    ],
+    "database": [
+      "PostgreSQL (Primary DB)",
+      "Redis (Session & Catalog Caching)"
+    ],
+    "devops": [
+      "Docker",
+      "AWS ECS (Fargate)",
+      "Nginx API Gateway",
+      "GitHub Actions CI/CD"
+    ]
+  },
+  "components": [
+    {
+      "name": "React Client App",
+      "type": "Frontend SPA",
+      "description": "Highly responsive shopping portal, catalog, and checkout flow."
+    },
+    {
+      "name": "Nginx API Gateway",
+      "type": "Reverse Proxy",
+      "description": "SSL termination, rate limiting, and request routing to microservices."
+    },
+    {
+      "name": "Auth Service",
+      "type": "Microservice",
+      "description": "Issues JWT tokens, manages user accounts, and stores password hashes in postgres."
+    },
+    {
+      "name": "Order Service",
+      "type": "Microservice",
+      "description": "Manages order state machines, cart items, and links with payments."
+    },
+    {
+      "name": "Product Catalog Service",
+      "type": "Microservice",
+      "description": "Handles product details, categories, and inventory sync (cached with Redis)."
+    },
+    {
+      "name": "RabbitMQ",
+      "type": "Message Broker",
+      "description": "Asynchronous event broker for order placements, notifications, and inventory updates."
+    }
+  ],
+  "suggested_apis": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "description": "Register a new buyer account.",
+      "request_body": "{\"username\": \"buyer\", \"password\": \"securepwd123\", \"email\": \"buyer@example.com\"}",
+      "response_body": "{\"id\": 101, \"username\": \"buyer\", \"created_at\": \"2026-07-02T12:00:00Z\"}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products",
+      "description": "Fetch paginated catalog list.",
+      "request_body": "None (Query params: page, limit, category)",
+      "response_body": "{\"products\": [{\"id\": \"p1\", \"name\": \"Blue T-Shirt\", \"price\": 29.99}], \"total\": 1}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/orders",
+      "description": "Create a new shopping cart checkout order.",
+      "request_body": "{\"items\": [{\"product_id\": \"p1\", \"quantity\": 2}], \"shipping_address\": \"123 Main St\"}",
+      "response_body": "{\"order_id\": \"ord_90112\", \"status\": \"pending\", \"amount\": 59.98}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/payments/stripe-webhook",
+      "description": "Stripe webhook to process transaction status.",
+      "request_body": "{\"id\": \"evt_payment_intent_succeeded\", \"type\": \"payment_intent.succeeded\", \"data\": {...}}",
+      "response_body": "{\"received\": true}"
+    }
+  ],
+  "database_entities": [
+    {
+      "name": "User",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER (PK)"
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR(50) (UNIQUE)"
+        },
+        {
+          "name": "hashed_password",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(100)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(36) (PK)"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "price",
+          "type": "DECIMAL(10, 2)"
+        },
+        {
+          "name": "stock_quantity",
+          "type": "INTEGER"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR(100)"
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(36) (PK)"
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER (FK)"
+        },
+        {
+          "name": "total_amount",
+          "type": "DECIMAL(10, 2)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20) -- pending, paid, shipped, cancelled"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    }
+  ]
+}

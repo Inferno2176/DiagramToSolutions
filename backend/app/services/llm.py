@@ -184,19 +184,32 @@ async def analyze_architecture_gemini(ocr_text: str, ocr_json: Optional[Union[Di
     )
     
     # 4. Initialize client and send request to Gemini
-    try:
-        client = genai.Client(api_key=api_key)
-        
-        # Call Gemini asynchronously using the google-genai library
-        response = await client.aio.models.generate_content(
-            model="gemini-3.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json"
+    client = genai.Client(api_key=api_key)
+    models_to_try = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash"]
+    response = None
+    last_error = None
+    
+    import logging
+    logger = logging.getLogger("llm_service")
+    
+    for model_name in models_to_try:
+        try:
+            logger.info(f"Attempting Gemini generation with model {model_name}")
+            response = await client.aio.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
             )
-        )
-    except Exception as e:
-        raise RuntimeError(f"Gemini API call failed: {str(e)}") from e
+            logger.info(f"Successfully generated content using model {model_name}")
+            break
+        except Exception as e:
+            last_error = e
+            logger.warning(f"Failed to generate content with model {model_name}: {e}. Trying fallback...")
+            
+    if response is None:
+        raise RuntimeError(f"Gemini API call failed for all models. Last error: {str(last_error)}") from last_error
         
     # 5. Validate Gemini response
     if not response or not response.text or not response.text.strip():

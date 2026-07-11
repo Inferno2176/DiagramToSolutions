@@ -1,10 +1,40 @@
 import os
 import json
 import re
+import asyncio
 from typing import Dict, Any, Union, Optional
 from google import genai
 from google.genai import types
 from google.genai import errors
+
+class GeminiQuotaExceededError(RuntimeError):
+    """Exception raised when the Gemini API quota is exhausted after all retries."""
+    pass
+
+def extract_retry_delay(error_obj) -> Optional[float]:
+    """
+    Parses the retry delay (in seconds) from a Gemini API error.
+    """
+    err_str = str(error_obj)
+    
+    # Method 1: Look for retryDelay value inside serialized JSON/dict format, e.g. 'retryDelay': '17s'
+    try:
+        match = re.search(r"['\"]retryDelay['\"]\s*:\s*['\"]([0-9.]+)\w?['\"]", err_str)
+        if match:
+            return float(match.group(1))
+    except Exception:
+        pass
+        
+    # Method 2: Look for 'Please retry in X.Y s' format in the exception string message
+    try:
+        match = re.search(r"Please retry in ([0-9.]+)s", err_str, re.IGNORECASE)
+        if match:
+            return float(match.group(1))
+    except Exception:
+        pass
+        
+    return None
+
 
 def clean_json_response(text: str) -> str:
     """
@@ -185,31 +215,49 @@ async def analyze_architecture_gemini(ocr_text: str, ocr_json: Optional[Union[Di
     
     # 4. Initialize client and send request to Gemini
     client = genai.Client(api_key=api_key)
-    models_to_try = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash"]
-    response = None
-    last_error = None
     
     import logging
     logger = logging.getLogger("llm_service")
     
-    for model_name in models_to_try:
+    max_retries = 2
+    retry_count = 0
+    delay = 2.0
+    response = None
+    
+    logger.info("Gemini request started")
+    
+    while True:
         try:
-            logger.info(f"Attempting Gemini generation with model {model_name}")
             response = await client.aio.models.generate_content(
-                model=model_name,
+                model="gemini-3.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json"
                 )
             )
-            logger.info(f"Successfully generated content using model {model_name}")
+            logger.info("Gemini analysis completed")
             break
         except Exception as e:
-            last_error = e
-            logger.warning(f"Failed to generate content with model {model_name}: {e}. Trying fallback...")
+            err_str = str(e)
+            is_quota_error = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
             
-    if response is None:
-        raise RuntimeError(f"Gemini API call failed for all models. Last error: {str(last_error)}") from last_error
+            if is_quota_error:
+                logger.warning("Gemini quota limit reached")
+                if retry_count < max_retries:
+                    retry_count += 1
+                    parsed_delay = extract_retry_delay(e)
+                    if parsed_delay is not None:
+                        delay = parsed_delay
+                    else:
+                        delay = delay * 2.0
+                    logger.info(f"Retrying Gemini after {delay} seconds")
+                    logger.info(f"Gemini retry attempt {retry_count}")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error("Gemini analysis failed after maximum retries")
+                    raise GeminiQuotaExceededError("Gemini API quota exceeded after maximum retries.") from e
+            else:
+                raise e
         
     # 5. Validate Gemini response
     if not response or not response.text or not response.text.strip():

@@ -1,6 +1,7 @@
 import os
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -8,7 +9,7 @@ from app.database import get_db
 from app.models import Diagram, User
 from app.auth import get_current_user
 from app.services.ocr import extract_text_from_file
-from app.services.llm import analyze_architecture_gemini
+from app.services.llm import analyze_architecture_gemini, GeminiQuotaExceededError
 
 logger = logging.getLogger("analyze_router")
 
@@ -34,6 +35,15 @@ async def analyze_diagram(
             detail="Uploaded file not found or access denied"
         )
         
+    # 7. Check whether a completed architecture analysis already exists
+    if diagram.status and diagram.status.upper() == "COMPLETED" and diagram.analysis_json:
+        logger.info(f"Analysis already completed for {upload_id}. Returning stored analysis.")
+        return {
+            "upload_id": diagram.id,
+            "status": diagram.status,
+            "analysis": diagram.analysis_json
+        }
+        
     if not os.path.exists(diagram.file_path):
         diagram.status = "failed"
         db.commit()
@@ -42,42 +52,50 @@ async def analyze_diagram(
             detail="Uploaded file is missing from storage"
         )
         
-    # 1. Update status to ocr_processing
-    diagram.status = "ocr_processing"
-    db.commit()
+    ocr_text = diagram.ocr_text
+    ocr_json = diagram.ocr_json
     
-    try:
-        # 2. Extract OCR non-blockingly
-        from fastapi.concurrency import run_in_threadpool
-        ocr_result = await run_in_threadpool(extract_text_from_file, diagram.file_path, diagram.filename)
-        
-        if not ocr_result:
-            raise ValueError("OCR result missing")
-            
-        ocr_text = ocr_result.get("plain_text")
-        ocr_json = ocr_result.get("detected_text")
-        
-        if not ocr_text or not str(ocr_text).strip():
-            raise ValueError("OCR extracted text empty")
-            
-        diagram.ocr_text = ocr_text
-        diagram.ocr_json = ocr_json
-        
-        logger.info(f"OCR completed for {upload_id}")
-        
-    except Exception as e:
-        diagram.status = "failed"
+    # 6. Check if OCR data already exists
+    if ocr_text and str(ocr_text).strip():
+        logger.info(f"OCR data already exists for {upload_id}. Skipping OCR step.")
+    else:
+        # 1. Update status to ocr_processing
+        diagram.status = "ocr_processing"
         db.commit()
-        logger.error(f"OCR failed for {upload_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"OCR processing failure: {str(e)}"
-        )
         
-    # 3. Update status to ocr_completed then llm_processing
-    diagram.status = "ocr_completed"
-    db.commit()
-    
+        try:
+            # 2. Extract OCR non-blockingly
+            from fastapi.concurrency import run_in_threadpool
+            ocr_result = await run_in_threadpool(extract_text_from_file, diagram.file_path, diagram.filename)
+            
+            if not ocr_result:
+                raise ValueError("OCR result missing")
+                
+            ocr_text = ocr_result.get("plain_text")
+            ocr_json = ocr_result.get("detected_text")
+            
+            if not ocr_text or not str(ocr_text).strip():
+                raise ValueError("OCR extracted text empty")
+                
+            diagram.ocr_text = ocr_text
+            diagram.ocr_json = ocr_json
+            
+            logger.info(f"OCR completed for {upload_id}")
+            
+            # Update status to ocr_completed
+            diagram.status = "ocr_completed"
+            db.commit()
+            
+        except Exception as e:
+            diagram.status = "failed"
+            db.commit()
+            logger.error(f"OCR failed for {upload_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"OCR processing failure: {str(e)}"
+            )
+            
+    # 3. Update status to llm_processing
     diagram.status = "llm_processing"
     db.commit()
     
@@ -113,6 +131,22 @@ async def analyze_diagram(
         
         logger.info(f"Gemini analysis completed for {upload_id}")
         
+    except GeminiQuotaExceededError as e:
+        diagram.status = "llm_quota_exceeded"
+        db.commit()
+        logger.error(f"Gemini quota limit reached for {upload_id}: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "upload_id": diagram.id,
+                "status": "llm_quota_exceeded",
+                "error": {
+                    "type": "LLM_QUOTA_EXCEEDED",
+                    "message": "Gemini API quota is currently exhausted. OCR processing has completed successfully and the extracted data has been preserved.",
+                    "retryable": true
+                }
+            }
+        )
     except Exception as e:
         diagram.status = "failed"
         db.commit()

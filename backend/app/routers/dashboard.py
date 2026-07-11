@@ -17,7 +17,7 @@ def get_dashboard_stats(
     total_uploads = db.query(Diagram).filter(Diagram.user_id == current_user.id).count()
     completed_analyses = db.query(Diagram).filter(
         Diagram.user_id == current_user.id,
-        Diagram.status == "COMPLETED"
+        Diagram.status.in_(["completed", "COMPLETED"])
     ).count()
     recent_projects = db.query(Diagram).filter(
         Diagram.user_id == current_user.id

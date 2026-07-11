@@ -4,6 +4,40 @@ import {
   Eye, Download, RefreshCw, AlertTriangle 
 } from "lucide-react";
 
+const STATUS_MAPPING = {
+  uploaded: "Uploaded",
+  ocr_processing: "OCR Processing",
+  ocr_completed: "OCR Completed",
+  llm_processing: "AI Analysis",
+  completed: "Completed",
+  failed: "Failed",
+  llm_quota_exceeded: "AI Quota Limited"
+};
+
+const getStatusLabel = (status) => {
+  if (!status) return "";
+  const s = status.toLowerCase();
+  return STATUS_MAPPING[s] || status;
+};
+
+const getStatusClass = (status) => {
+  if (!status) return "";
+  const s = status.toLowerCase();
+  switch (s) {
+    case "completed":
+      return "bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/20";
+    case "failed":
+      return "bg-red-500/10 text-red-400 border border-red-500/20";
+    case "llm_quota_exceeded":
+      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+    case "uploaded":
+      return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+    default:
+      // ocr_processing, ocr_completed, llm_processing
+      return "bg-brand-purple/10 text-brand-purple border border-brand-purple/20 animate-pulse";
+  }
+};
+
 export default function Dashboard({ token, navigateTo, setSelectedDiagramId, onAuthError }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -199,86 +233,113 @@ export default function Dashboard({ token, navigateTo, setSelectedDiagramId, onA
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-dark-700/50">
-                  {stats?.recent_projects?.map((item) => (
-                    <tr key={item.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="py-3.5 pr-4 font-semibold text-slate-200 truncate max-w-[200px]" title={item.filename}>
-                        {item.filename}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                          item.status === "COMPLETED" 
-                            ? "bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/20"
-                            : item.status === "FAILED"
-                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                            : "bg-brand-purple/10 text-brand-purple border border-brand-purple/20 animate-pulse"
-                        }`}>
-                          {item.status.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-400">
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-3.5 pl-4 text-right">
-                        <div className="flex items-center justify-end gap-2.5">
-                          {item.status === "COMPLETED" ? (
-                            <>
+                  {stats?.recent_projects?.map((item) => {
+                    const isStale = (new Date() - new Date(item.created_at)) > 5 * 60 * 1000;
+                    const statusLower = item.status ? item.status.toLowerCase() : "";
+                    const isProcessing = ["ocr_processing", "ocr_completed", "llm_processing"].includes(statusLower);
+
+                    return (
+                      <tr key={item.id} className="hover:bg-white/5 transition-colors group">
+                        <td className="py-3.5 pr-4 font-semibold text-slate-200 truncate max-w-[200px]" title={item.filename}>
+                          {item.filename}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${getStatusClass(item.status)}`}>
+                            {getStatusLabel(item.status)}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-xs text-slate-400">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-3.5 pl-4 text-right">
+                          <div className="flex items-center justify-end gap-2.5">
+                            {statusLower === "completed" ? (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setSelectedDiagramId(item.id);
+                                    navigateTo("results");
+                                  }}
+                                  className="text-xs text-brand-cyan hover:underline font-bold mr-1"
+                                >
+                                  View Report
+                                </button>
+                                <div className="relative group/down inline-block">
+                                  <button
+                                    className="p-1 text-slate-400 hover:text-brand-purple hover:bg-brand-purple/10 rounded transition-all"
+                                    title="Download Report"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                  {/* Quick dropdown on hover/click */}
+                                  <div className="absolute right-0 bottom-full mb-1 hidden group-hover/down:flex flex-col bg-dark-800 border border-dark-700 rounded-lg py-1 shadow-xl z-50 text-left min-w-[100px]">
+                                    <button 
+                                      onClick={() => handleDownload(item.id, item.filename, 'pdf')}
+                                      className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
+                                    >
+                                      PDF
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDownload(item.id, item.filename, 'markdown')}
+                                      className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
+                                    >
+                                      Markdown
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDownload(item.id, item.filename, 'json')}
+                                      className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
+                                    >
+                                      JSON
+                                    </button>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (statusLower === "failed" || (isProcessing && isStale && statusLower === "ocr_processing")) ? (
                               <button
                                 onClick={() => {
                                   setSelectedDiagramId(item.id);
-                                  navigateTo("results");
+                                  navigateTo("progress");
                                 }}
-                                className="p-1.5 text-slate-400 hover:text-brand-cyan hover:bg-brand-cyan/10 rounded-lg transition-all"
-                                title="View analysis documentation"
+                                className="text-xs text-brand-cyan hover:underline font-bold"
                               >
-                                <Eye className="w-4 h-4" />
+                                Retry Analysis
                               </button>
-                              <div className="relative group/down">
-                                <button
-                                  className="p-1.5 text-slate-400 hover:text-brand-purple hover:bg-brand-purple/10 rounded-lg transition-all"
-                                  title="Download Report"
-                                >
-                                  <Download className="w-4 h-4" />
-                                </button>
-                                {/* Quick dropdown on hover/click */}
-                                <div className="absolute right-0 bottom-full mb-1 hidden group-hover/down:flex flex-col bg-dark-800 border border-dark-700 rounded-lg py-1 shadow-xl z-50 text-left min-w-[100px]">
-                                  <button 
-                                    onClick={() => handleDownload(item.id, item.filename, 'pdf')}
-                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                  >
-                                    PDF
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDownload(item.id, item.filename, 'markdown')}
-                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                  >
-                                    Markdown
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDownload(item.id, item.filename, 'json')}
-                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                  >
-                                    JSON
-                                  </button>
-                                </div>
-                              </div>
-                            </>
-                          ) : item.status === "FAILED" ? (
-                            <span className="text-xs text-red-400">Failed</span>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedDiagramId(item.id);
-                                navigateTo("progress");
-                              }}
-                              className="text-xs text-brand-purple hover:underline"
-                            >
-                              Track Progress
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            ) : (statusLower === "llm_quota_exceeded" || (isProcessing && isStale && (statusLower === "ocr_completed" || statusLower === "llm_processing"))) ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedDiagramId(item.id);
+                                  navigateTo("progress");
+                                }}
+                                className="text-xs text-brand-cyan hover:underline font-bold"
+                              >
+                                Retry AI Analysis
+                              </button>
+                            ) : statusLower === "uploaded" ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedDiagramId(item.id);
+                                  navigateTo("progress");
+                                }}
+                                className="text-xs text-brand-cyan hover:underline font-bold"
+                              >
+                                Start Analysis
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedDiagramId(item.id);
+                                  navigateTo("progress");
+                                }}
+                                className="text-xs text-brand-purple hover:underline"
+                              >
+                                Track Progress
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -293,22 +354,22 @@ export default function Dashboard({ token, navigateTo, setSelectedDiagramId, onA
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-brand-cyan/20 text-brand-cyan font-bold flex items-center justify-center text-xs flex-shrink-0">1</div>
                 <div>
-                  <p className="font-semibold text-slate-200">Upload Layout Design</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Drag-and-drop your JPEG, PNG, or PDF architecture blueprint.</p>
+                  <p className="font-semibold text-slate-200">Upload Architecture Diagram</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Upload a PNG, JPG, JPEG, or PDF software architecture diagram.</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-brand-purple/20 text-brand-purple font-bold flex items-center justify-center text-xs flex-shrink-0">2</div>
                 <div>
-                  <p className="font-semibold text-slate-200">OCR Label Capture</p>
-                  <p className="text-xs text-slate-400 mt-0.5">The pipeline extracts system nodes, servers, DBs, and linkages.</p>
+                  <p className="font-semibold text-slate-200">OCR Architecture Extraction</p>
+                  <p className="text-xs text-slate-400 mt-0.5">PaddleOCR extracts diagram labels, technologies, components, and text metadata.</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-brand-indigo/20 text-brand-indigo font-bold flex items-center justify-center text-xs flex-shrink-0">3</div>
                 <div>
-                  <p className="font-semibold text-slate-200">LLM Documentation Synthesis</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Mock LLM outputs code schemas, API routes, and workflow briefs.</p>
+                  <p className="font-semibold text-slate-200">Gemini Architecture Analysis</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Gemini analyzes the OCR output and generates engineering insights, workflows, technology recommendations, API suggestions, and database schema recommendations.</p>
                 </div>
               </div>
             </div>

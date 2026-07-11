@@ -1,6 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Clock, Eye, Download, AlertTriangle, FileText, Code, Terminal } from "lucide-react";
 
+const STATUS_MAPPING = {
+  uploaded: "Uploaded",
+  ocr_processing: "OCR Processing",
+  ocr_completed: "OCR Completed",
+  llm_processing: "AI Analysis",
+  completed: "Completed",
+  failed: "Failed",
+  llm_quota_exceeded: "AI Quota Limited"
+};
+
+const getStatusLabel = (status) => {
+  if (!status) return "";
+  const s = status.toLowerCase();
+  return STATUS_MAPPING[s] || status;
+};
+
+const getStatusClass = (status) => {
+  if (!status) return "";
+  const s = status.toLowerCase();
+  switch (s) {
+    case "completed":
+      return "bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/20";
+    case "failed":
+      return "bg-red-500/10 text-red-400 border border-red-500/20";
+    case "llm_quota_exceeded":
+      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+    case "uploaded":
+      return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+    default:
+      // ocr_processing, ocr_completed, llm_processing
+      return "bg-brand-purple/10 text-brand-purple border border-brand-purple/20 animate-pulse";
+  }
+};
+
 export default function History({ token, navigateTo, setSelectedDiagramId, onAuthError }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,89 +155,116 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-700/50">
-                {history.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="py-3.5 pr-4 font-semibold text-slate-200 truncate max-w-[200px]" title={item.filename}>
-                      {item.filename}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                        item.status === "COMPLETED" 
-                          ? "bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/20"
-                          : item.status === "FAILED"
-                          ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                          : "bg-brand-purple/10 text-brand-purple border border-brand-purple/20 animate-pulse"
-                      }`}>
-                        {item.status.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-400">
-                      {new Date(item.created_at).toLocaleString()}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-400">
-                      {item.completed_at ? new Date(item.completed_at).toLocaleString() : "-"}
-                    </td>
-                    <td className="py-3.5 pl-4 text-right">
-                      <div className="flex items-center justify-end gap-2.5">
-                        {item.status === "COMPLETED" ? (
-                          <>
+                {history.map((item) => {
+                  const isStale = (new Date() - new Date(item.created_at)) > 5 * 60 * 1000;
+                  const statusLower = item.status ? item.status.toLowerCase() : "";
+                  const isProcessing = ["ocr_processing", "ocr_completed", "llm_processing"].includes(statusLower);
+
+                  return (
+                    <tr key={item.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="py-3.5 pr-4 font-semibold text-slate-200 truncate max-w-[200px]" title={item.filename}>
+                        {item.filename}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${getStatusClass(item.status)}`}>
+                          {getStatusLabel(item.status)}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-400">
+                        {new Date(item.created_at).toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-400">
+                        {item.completed_at ? new Date(item.completed_at).toLocaleString() : "-"}
+                      </td>
+                      <td className="py-3.5 pl-4 text-right">
+                        <div className="flex items-center justify-end gap-2.5">
+                          {statusLower === "completed" ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedDiagramId(item.id);
+                                  navigateTo("results");
+                                }}
+                                className="text-xs text-brand-cyan hover:underline font-bold mr-1"
+                              >
+                                View Report
+                              </button>
+                              <div className="relative group/down inline-block">
+                                <button
+                                  className="p-1 text-slate-400 hover:text-brand-purple hover:bg-brand-purple/10 rounded transition-all"
+                                  title="Download Report"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                                
+                                <div className="absolute right-0 bottom-full mb-1 hidden group-hover/down:flex flex-col bg-dark-850 border border-dark-700 rounded-lg py-1 shadow-xl z-50 text-left min-w-[100px]">
+                                  <button 
+                                    onClick={() => handleDownload(item.id, item.filename, 'pdf')}
+                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
+                                  >
+                                    PDF
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDownload(item.id, item.filename, 'markdown')}
+                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
+                                  >
+                                    Markdown
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDownload(item.id, item.filename, 'json')}
+                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
+                                  >
+                                    JSON
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          ) : (statusLower === "failed" || (isProcessing && isStale && statusLower === "ocr_processing")) ? (
+                            <button
+                              onClick={() => {
+                                  setSelectedDiagramId(item.id);
+                                  navigateTo("progress");
+                              }}
+                              className="text-xs text-brand-cyan hover:underline font-bold"
+                            >
+                              Retry Analysis
+                            </button>
+                          ) : (statusLower === "llm_quota_exceeded" || (isProcessing && isStale && (statusLower === "ocr_completed" || statusLower === "llm_processing"))) ? (
+                            <button
+                              onClick={() => {
+                                  setSelectedDiagramId(item.id);
+                                  navigateTo("progress");
+                              }}
+                              className="text-xs text-brand-cyan hover:underline font-bold"
+                            >
+                              Retry AI Analysis
+                            </button>
+                          ) : statusLower === "uploaded" ? (
+                            <button
+                              onClick={() => {
+                                  setSelectedDiagramId(item.id);
+                                  navigateTo("progress");
+                              }}
+                              className="text-xs text-brand-cyan hover:underline font-bold"
+                            >
+                              Start Analysis
+                            </button>
+                          ) : (
                             <button
                               onClick={() => {
                                 setSelectedDiagramId(item.id);
-                                navigateTo("results");
+                                navigateTo("progress");
                               }}
-                              className="p-1.5 text-slate-400 hover:text-brand-cyan hover:bg-brand-cyan/10 rounded-lg transition-all"
-                              title="View documentation"
+                              className="text-xs text-brand-purple hover:underline"
                             >
-                              <Eye className="w-4.5 h-4.5" />
+                              Track Progress
                             </button>
-                            <div className="relative group/down">
-                              <button
-                                className="p-1.5 text-slate-400 hover:text-brand-purple hover:bg-brand-purple/10 rounded-lg transition-all"
-                                title="Download Report"
-                              >
-                                <Download className="w-4.5 h-4.5" />
-                              </button>
-                              
-                              <div className="absolute right-0 bottom-full mb-1 hidden group-hover/down:flex flex-col bg-dark-850 border border-dark-700 rounded-lg py-1 shadow-xl z-50 text-left min-w-[100px]">
-                                <button 
-                                  onClick={() => handleDownload(item.id, item.filename, 'pdf')}
-                                  className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                >
-                                  PDF
-                                </button>
-                                <button 
-                                  onClick={() => handleDownload(item.id, item.filename, 'markdown')}
-                                  className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                >
-                                  Markdown
-                                </button>
-                                <button 
-                                  onClick={() => handleDownload(item.id, item.filename, 'json')}
-                                  className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                >
-                                  JSON
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        ) : item.status === "FAILED" ? (
-                          <span className="text-xs text-red-400">Failed</span>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedDiagramId(item.id);
-                              navigateTo("progress");
-                            }}
-                            className="text-xs text-brand-purple hover:underline"
-                          >
-                            Track Progress
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

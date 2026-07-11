@@ -144,7 +144,7 @@ def download_diagram_report(
             detail="Diagram not found"
         )
     
-    if diagram.status != "COMPLETED":
+    if diagram.status.upper() != "COMPLETED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Analysis is not completed yet"

@@ -173,6 +173,19 @@ export default function Results({ token, navigateTo, selectedDiagramId, onAuthEr
           <span>•</span>
           <span><b>Completed:</b> {new Date(diagram.completed_at || diagram.created_at).toLocaleString()}</span>
         </div>
+        {analysis.model_execution_info && (
+          <div className="mt-3 pt-3 border-t border-dark-700/50 flex items-center gap-2 text-xs text-slate-300">
+            <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
+            <span>
+              Completed with <b className="text-white capitalize">{analysis.model_execution_info.final_provider}</b> (<code className="text-brand-cyan font-mono text-[11px]">{analysis.model_execution_info.final_model}</code>)
+            </span>
+            {analysis.model_execution_info.switch_count > 0 && (
+              <span className="bg-brand-purple/10 text-brand-purple border border-brand-purple/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                {analysis.model_execution_info.switch_count} automatic model shift{analysis.model_execution_info.switch_count > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs list bar */}

@@ -29,6 +29,8 @@ backend/.venv/
 __pycache__/
 *.pyc
 *.db
+*.db.bak
+*.bak
 
 # Environments
 .env

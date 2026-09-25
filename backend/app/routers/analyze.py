@@ -143,7 +143,7 @@ async def analyze_diagram(
                 "error": {
                     "type": "LLM_QUOTA_EXCEEDED",
                     "message": "Gemini API quota is currently exhausted. OCR processing has completed successfully and the extracted data has been preserved.",
-                    "retryable": true
+                    "retryable": True
                 }
             }
         )

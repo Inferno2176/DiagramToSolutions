@@ -63,6 +63,11 @@ def process_diagram_analysis(diagram_id: str):
         db.close()
 
 
+import logging
+from app.services.image_processing import validate_file_ingestion, MAX_FILE_SIZE, SUPPORTED_EXTS
+
+logger = logging.getLogger("diagrams_router")
+
 @router.post("/upload", response_model=DiagramListItem, status_code=status.HTTP_201_CREATED)
 def upload_diagram(
     background_tasks: BackgroundTasks,
@@ -70,25 +75,70 @@ def upload_diagram(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    logger.info(f"File received: {file.filename}")
+    
     file_ext = os.path.splitext(file.filename)[1].lower()
-    if file_ext not in [".png", ".jpg", ".jpeg", ".pdf"]:
+    if file_ext not in SUPPORTED_EXTS:
+        err = "Unsupported file format. Please upload PNG, JPG, JPEG, or PDF."
+        logger.error(f"File processing failed for {file.filename}: {err}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported file format. Please upload a PNG, JPG, or PDF file."
+            detail=err
         )
+    
+    logger.info(f"File type detected: {file_ext}")
     
     diagram_id = str(uuid.uuid4())
     unique_filename = f"{diagram_id}_{file.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
+    # Stream and track file size to enforce 15MB limit safely
+    total_size = 0
+    chunk_size = 1024 * 1024  # 1 MB chunks
     try:
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            while True:
+                chunk = file.file.read(chunk_size)
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if total_size > MAX_FILE_SIZE:
+                    err = "File exceeds the maximum allowed size."
+                    logger.error(f"File processing failed for {file.filename}: {err}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=err
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise
     except Exception as e:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        logger.error(f"File processing failed for {file.filename}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save uploaded file: {str(e)}"
         )
+
+    # Perform full format, MIME, and corruption validation
+    is_valid, err_msg, _ = validate_file_ingestion(
+        file_path=file_path,
+        filename=file.filename,
+        content_type=file.content_type
+    )
+    if not is_valid:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        logger.error(f"File processing failed for {file.filename}: {err_msg}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=err_msg
+        )
+    
+    logger.info(f"File validated: {file.filename}")
     
     new_diagram = Diagram(
         id=diagram_id,

@@ -1,0 +1,118 @@
+[
+  {
+    "diagram_title": "Simple Architecture Diagram",
+    "diagram_type_detected": "Application Architecture",
+    "components_detected_after": 3,
+    "relationships_detected_after": 2,
+    "sample_relationships": [
+      {
+        "source": "React Client",
+        "target": "FastAPI Server",
+        "relationship": "Sends HTTP/JSON requests",
+        "direction": "outbound",
+        "confidence": "high"
+      },
+      {
+        "source": "FastAPI Server",
+        "target": "PostgreSQL Database",
+        "relationship": "Executes SQL Queries",
+        "direction": "outbound",
+        "confidence": "high"
+      }
+    ],
+    "before_has_relationships": true,
+    "after_has_relationships": true,
+    "confidence": "high",
+    "notes": [
+      "Linear data flow: Client -> Backend -> Database.",
+      "Clear separation of concerns between presentation, business logic, and data storage tiers."
+    ]
+  },
+  {
+    "diagram_title": "Application Architecture Diagram",
+    "diagram_type_detected": "System Architecture",
+    "components_detected_after": 8,
+    "relationships_detected_after": 7,
+    "sample_relationships": [
+      {
+        "source": "Nextjs WebClient Frontend App",
+        "target": "NGINX Reverse Proxy API Gateway Router",
+        "relationship": "Sends API Requests",
+        "direction": "outbound",
+        "confidence": "high"
+      },
+      {
+        "source": "NGINX Reverse Proxy API Gateway Router",
+        "target": "Auth Service",
+        "relationship": "Routes Auth Requests",
+        "direction": "outbound",
+        "confidence": "high"
+      },
+      {
+        "source": "NGINX Reverse Proxy API Gateway Router",
+        "target": "Order Service FastAPI Application",
+        "relationship": "Routes Order Requests",
+        "direction": "outbound",
+        "confidence": "high"
+      },
+      {
+        "source": "Auth Service",
+        "target": "PostgreSQL DB Primary Storage",
+        "relationship": "Reads/Writes User Data",
+        "direction": "outbound",
+        "confidence": "high"
+      }
+    ],
+    "before_has_relationships": true,
+    "after_has_relationships": true,
+    "confidence": "high",
+    "notes": [
+      "Explicit directional arrows define all inter-service communications.",
+      "Clear separation of concerns between frontend, gateway, core services, cache, database, message queue, and worker tasks."
+    ]
+  },
+  {
+    "diagram_title": "Network/Cloud Architecture Diagram",
+    "diagram_type_detected": "Cloud Architecture",
+    "components_detected_after": 5,
+    "relationships_detected_after": 4,
+    "sample_relationships": [
+      {
+        "source": "Cloudflare CDN Edge WAF & DDoS",
+        "target": "AWS ALB Application Load Balancer",
+        "relationship": "Forwards secure client web traffic to public load balancer",
+        "direction": "outbound",
+        "confidence": "high"
+      },
+      {
+        "source": "AWS ALB Application Load Balancer",
+        "target": "ECS Fargate Cluster Microservices Tasks",
+        "relationship": "Routes incoming requests to private backend container tasks",
+        "direction": "outbound",
+        "confidence": "high"
+      },
+      {
+        "source": "ECS Fargate Cluster Microservices Tasks",
+        "target": "Amazon Aurora RDS PostgreSQL Multi-AZ",
+        "relationship": "Reads and writes transactional persistent data",
+        "direction": "outbound",
+        "confidence": "high"
+      },
+      {
+        "source": "ECS Fargate Cluster Microservices Tasks",
+        "target": "ElastiCache Redis Cluster",
+        "relationship": "Reads and writes cached data and session state",
+        "direction": "outbound",
+        "confidence": "high"
+      }
+    ],
+    "before_has_relationships": true,
+    "after_has_relationships": true,
+    "confidence": "high",
+    "notes": [
+      "Diagram clearly delineates network boundaries using nested subnets (Public Subnet and Private Subnet (VPC)) within AWS Cloud Environment (us-east-1).",
+      "Cloudflare CDN sits outside the AWS cloud boundary as the primary entry point.",
+      "Clear directionality indicated by colored arrows connecting components."
+    ]
+  }
+]

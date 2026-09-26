@@ -1,0 +1,65 @@
+[
+  {
+    "test_name": "PNG",
+    "filename": "architecture.png",
+    "upload_result": "SUCCESS (HTTP 201, ID: 9816202e...)",
+    "ocr_result": "SUCCESS (3 detections)",
+    "pages_processed": 1,
+    "analysis_result": "SUCCESS (6/6 schema sections valid)",
+    "error": null
+  },
+  {
+    "test_name": "JPG",
+    "filename": "architecture.jpg",
+    "upload_result": "SUCCESS (HTTP 201, ID: 159abb3e...)",
+    "ocr_result": "SUCCESS (3 detections)",
+    "pages_processed": 1,
+    "analysis_result": "SUCCESS (6/6 schema sections valid)",
+    "error": null
+  },
+  {
+    "test_name": "JPEG",
+    "filename": "architecture.jpeg",
+    "upload_result": "SUCCESS (HTTP 201, ID: 20c4392e...)",
+    "ocr_result": "SUCCESS (3 detections)",
+    "pages_processed": 1,
+    "analysis_result": "SUCCESS (6/6 schema sections valid)",
+    "error": null
+  },
+  {
+    "test_name": "Single-page PDF",
+    "filename": "single_page.pdf",
+    "upload_result": "SUCCESS (HTTP 201, ID: e03bfc88...)",
+    "ocr_result": "SUCCESS (3 detections)",
+    "pages_processed": 1,
+    "analysis_result": "SUCCESS (6/6 schema sections valid)",
+    "error": null
+  },
+  {
+    "test_name": "Multi-page PDF",
+    "filename": "multipage_blueprint.pdf",
+    "upload_result": "SUCCESS (HTTP 201, ID: e9d38342...)",
+    "ocr_result": "SUCCESS (6 detections)",
+    "pages_processed": 3,
+    "analysis_result": "SUCCESS (6/6 schema sections valid)",
+    "error": null
+  },
+  {
+    "test_name": "Invalid file",
+    "filename": "notes.txt",
+    "upload_result": "REJECTED (HTTP 400)",
+    "ocr_result": "SKIPPED",
+    "pages_processed": 0,
+    "analysis_result": "SKIPPED",
+    "error": "Unsupported file format. Please upload PNG, JPG, JPEG, or PDF."
+  },
+  {
+    "test_name": "Corrupted image",
+    "filename": "corrupt.png",
+    "upload_result": "REJECTED (HTTP 400)",
+    "ocr_result": "SKIPPED",
+    "pages_processed": 0,
+    "analysis_result": "SKIPPED",
+    "error": "Image file is corrupted or unreadable."
+  }
+]

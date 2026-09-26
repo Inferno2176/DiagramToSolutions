@@ -11,13 +11,14 @@ logger = logging.getLogger("ocr_router")
 
 router = APIRouter(tags=["ocr"])
 
+MAX_OCR_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".pdf"}
 
 @router.post("/ocr")
 def run_ocr(file: UploadFile = File(...)):
     """
     Accepts an upload of an image (PNG, JPG, JPEG) or PDF,
-    performs OCR using PaddleOCR, and returns the structured extraction result.
+    performs OCR / diagram text extraction, and returns the structured extraction result.
     """
     filename = file.filename
     ext = os.path.splitext(filename)[1].lower()
@@ -26,17 +27,35 @@ def run_ocr(file: UploadFile = File(...)):
     if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext}'. Supported formats: {', '.join(SUPPORTED_EXTENSIONS)}"
+            detail="Unsupported file format. Please upload PNG, JPG, JPEG, or PDF."
         )
         
     # Create a unique temporary file path in the upload directory
     temp_filename = f"ocr_temp_{uuid.uuid4()}{ext}"
     temp_file_path = os.path.join(UPLOAD_DIR, temp_filename)
     
+    total_size = 0
+    chunk_size = 1024 * 1024
     try:
-        # 2. Save uploaded file temporarily
+        # 2. Save uploaded file temporarily with size tracking
         with open(temp_file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            while True:
+                chunk = file.file.read(chunk_size)
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if total_size > MAX_OCR_FILE_SIZE:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="File size exceeds the 15MB limit."
+                    )
+                buffer.write(chunk)
+                
+        if total_size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file is empty (0 bytes)."
+            )
             
         # 3. Call the OCR service
         ocr_result = extract_text_from_file(temp_file_path, filename)

@@ -1,6 +1,7 @@
+import os
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Optional, Set, Tuple
 from datetime import datetime, timezone
 
 class ShiftReason(str, Enum):
@@ -40,6 +41,7 @@ class ContextHandoff:
     original_user_request: str
     ocr_text: str
     ocr_json: Optional[Any] = None
+    diagram_file_path: Optional[str] = None
     completed_stages: List[str] = field(default_factory=lambda: ["ocr_completed"])
     intermediate_results: Dict[str, Any] = field(default_factory=dict)
     current_execution_state: str = "llm_processing"
@@ -47,6 +49,35 @@ class ContextHandoff:
     tool_results: Optional[Dict[str, Any]] = None
     switch_history: List[ShiftLog] = field(default_factory=list)
     attempted_models: Set[str] = field(default_factory=set)
+
+    def get_diagram_image_bytes(self) -> Optional[Tuple[bytes, str]]:
+        """
+        Loads and returns (image_bytes, mime_type) for visual multimodal analysis.
+        Supports PNG, JPG, JPEG, and renders the primary page of PDF documents.
+        """
+        if not self.diagram_file_path or not os.path.exists(self.diagram_file_path):
+            return None
+        
+        ext = os.path.splitext(self.diagram_file_path)[1].lower()
+        try:
+            if ext == ".png":
+                with open(self.diagram_file_path, "rb") as f:
+                    return f.read(), "image/png"
+            elif ext in (".jpg", ".jpeg"):
+                with open(self.diagram_file_path, "rb") as f:
+                    return f.read(), "image/jpeg"
+            elif ext == ".pdf":
+                import fitz
+                doc = fitz.open(self.diagram_file_path)
+                if len(doc) > 0:
+                    pix = doc[0].get_pixmap(dpi=200)
+                    png_bytes = pix.tobytes("png")
+                    doc.close()
+                    return png_bytes, "image/png"
+                doc.close()
+        except Exception:
+            pass
+        return None
 
     def mark_stage_completed(self, stage_name: str, stage_data: Optional[Dict[str, Any]] = None):
         if stage_name not in self.completed_stages:

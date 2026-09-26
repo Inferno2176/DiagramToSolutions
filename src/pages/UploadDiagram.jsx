@@ -30,13 +30,13 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId 
     const validExtensions = ["png", "jpg", "jpeg", "pdf"];
     
     if (!validExtensions.includes(fileExt)) {
-      setError("Unsupported file format. Please upload a PNG, JPG, or PDF blueprint.");
+      setError("Unsupported file format. Please upload PNG, JPG, JPEG, or PDF.");
       setFile(null);
       return;
     }
 
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      setError("File size exceeds 10MB limit.");
+    if (selectedFile.size > 15 * 1024 * 1024) {
+      setError("File exceeds the maximum allowed size.");
       setFile(null);
       return;
     }
@@ -250,7 +250,7 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId 
                       Drag and drop file here, or click to browse
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Accepts PNG, JPG, JPEG, and PDF blueprints up to 10MB
+                      Accepts PNG, JPG, JPEG, and PDF blueprints up to 15MB
                     </p>
                   </div>
                 </div>

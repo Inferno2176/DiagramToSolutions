@@ -25,9 +25,18 @@ class GeminiProvider(BaseLLMProvider):
         client = genai.Client(api_key=self.api_key)
         prompt = self.build_prompt(context)
 
+        # Combine visual diagram image with OCR text & developer JSON
+        image_info = context.get_diagram_image_bytes()
+        if image_info:
+            image_bytes, mime_type = image_info
+            image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            contents = [image_part, prompt]
+        else:
+            contents = prompt
+
         response = await client.aio.models.generate_content(
             model=model_name,
-            contents=prompt,
+            contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json"
             )
@@ -40,6 +49,18 @@ class GeminiProvider(BaseLLMProvider):
         cleaned = clean_json_response(raw_text)
 
         parsed_json = json.loads(cleaned)
+
+        # Ensure architecture_relationships and diagram_analysis exist
+        if "architecture_relationships" not in parsed_json:
+            parsed_json["architecture_relationships"] = []
+        if "diagram_analysis" not in parsed_json:
+            parsed_json["diagram_analysis"] = {
+                "diagram_type": parsed_json.get("summary", {}).get("architecture_type", "System Architecture"),
+                "components_detected": len(parsed_json.get("components", [])),
+                "relationships_detected": len(parsed_json.get("architecture_relationships", [])),
+                "confidence": "high" if parsed_json.get("architecture_relationships") else "medium",
+                "notes": []
+            }
 
         token_usage = None
         if hasattr(response, "usage_metadata") and response.usage_metadata:

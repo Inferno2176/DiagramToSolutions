@@ -31,12 +31,13 @@ def clean_json_response(text: str) -> str:
 async def analyze_architecture_gemini(
     ocr_text: str,
     ocr_json: Optional[Union[Dict[str, Any], list]] = None,
+    diagram_file_path: Optional[str] = None,
     initial_provider: Optional[str] = None,
     initial_model: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Analyze OCR text and OCR developer JSON using the AgentModelShifter orchestration layer.
-    Automatically handles two-level model and provider switching upon token exhaustion, timeouts, or quota limits.
+    Analyze architecture combining visual diagram image, OCR text, and OCR developer JSON
+    using the AgentModelShifter orchestration layer.
     """
     if not ocr_text or not ocr_text.strip():
         raise ValueError("OCR extracted text is empty")
@@ -45,6 +46,7 @@ async def analyze_architecture_gemini(
         original_user_request="Analyze software architecture diagram and extract engineering specifications",
         ocr_text=ocr_text,
         ocr_json=ocr_json,
+        diagram_file_path=diagram_file_path,
         completed_stages=["ocr_completed"]
     )
 

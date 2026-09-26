@@ -72,7 +72,12 @@ async def analyze_diagram(
                 raise ValueError("OCR result missing")
                 
             ocr_text = ocr_result.get("plain_text")
-            ocr_json = ocr_result.get("detected_text")
+            ocr_json = {
+                "detected_text": ocr_result.get("detected_text", []),
+                "pages": ocr_result.get("pages", []),
+                "total_detections": ocr_result.get("total_detections", 0),
+                "pages_processed": ocr_result.get("pages_processed", 1)
+            }
             
             if not ocr_text or not str(ocr_text).strip():
                 raise ValueError("OCR extracted text empty")
@@ -86,6 +91,14 @@ async def analyze_diagram(
             diagram.status = "ocr_completed"
             db.commit()
             
+        except ValueError as e:
+            diagram.status = "failed"
+            db.commit()
+            logger.warning(f"OCR validation failed for {upload_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Diagram text extraction error: {str(e)}"
+            )
         except Exception as e:
             diagram.status = "failed"
             db.commit()
@@ -103,7 +116,11 @@ async def analyze_diagram(
     
     try:
         # 4. Generate Analysis using Gemini
-        analysis = await analyze_architecture_gemini(ocr_text, ocr_json)
+        analysis = await analyze_architecture_gemini(
+            ocr_text=ocr_text,
+            ocr_json=ocr_json,
+            diagram_file_path=diagram.file_path
+        )
         
         diagram.architecture_summary = analysis.get("summary", {}).get("overview")
         diagram.analysis_json = analysis

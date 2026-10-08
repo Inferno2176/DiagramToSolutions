@@ -12,6 +12,7 @@ import AnalysisProgress from "./pages/AnalysisProgress";
 import Results from "./pages/Results";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 export default function App() {
   const getStoredToken = () => {
@@ -147,53 +148,55 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 min-h-screen px-4 md:px-8 py-6 md:py-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
-          {currentPage === "dashboard" && (
-            <Dashboard 
-              token={token} 
-              navigateTo={navigateTo} 
-              setSelectedDiagramId={setSelectedDiagramId} 
-              onAuthError={handleLogout}
-            />
-          )}
-          {currentPage === "upload" && (
-            <UploadDiagram 
-              token={token} 
-              navigateTo={navigateTo} 
-              setSelectedDiagramId={setSelectedDiagramId} 
-              onAuthError={handleLogout}
-            />
-          )}
-          {currentPage === "progress" && (
-            <AnalysisProgress 
-              token={token} 
-              navigateTo={navigateTo} 
-              selectedDiagramId={selectedDiagramId} 
-              onAuthError={handleLogout}
-            />
-          )}
-          {currentPage === "results" && (
-            <Results 
-              token={token} 
-              navigateTo={navigateTo} 
-              selectedDiagramId={selectedDiagramId} 
-              onAuthError={handleLogout}
-            />
-          )}
-          {currentPage === "history" && (
-            <History 
-              token={token} 
-              navigateTo={navigateTo} 
-              setSelectedDiagramId={setSelectedDiagramId} 
-              onAuthError={handleLogout}
-            />
-          )}
-          {currentPage === "settings" && (
-            <Settings 
-              token={token} 
-              navigateTo={navigateTo} 
-              onAuthError={handleLogout}
-            />
-          )}
+          <ErrorBoundary navigateTo={navigateTo} onReset={() => setCurrentPage("dashboard")}>
+            {currentPage === "dashboard" && (
+              <Dashboard 
+                token={token} 
+                navigateTo={navigateTo} 
+                setSelectedDiagramId={setSelectedDiagramId} 
+                onAuthError={handleLogout}
+              />
+            )}
+            {currentPage === "upload" && (
+              <UploadDiagram 
+                token={token} 
+                navigateTo={navigateTo} 
+                setSelectedDiagramId={setSelectedDiagramId} 
+                onAuthError={handleLogout}
+              />
+            )}
+            {currentPage === "progress" && (
+              <AnalysisProgress 
+                token={token} 
+                navigateTo={navigateTo} 
+                selectedDiagramId={selectedDiagramId} 
+                onAuthError={handleLogout}
+              />
+            )}
+            {currentPage === "results" && (
+              <Results 
+                token={token} 
+                navigateTo={navigateTo} 
+                selectedDiagramId={selectedDiagramId} 
+                onAuthError={handleLogout}
+              />
+            )}
+            {currentPage === "history" && (
+              <History 
+                token={token} 
+                navigateTo={navigateTo} 
+                setSelectedDiagramId={setSelectedDiagramId} 
+                onAuthError={handleLogout}
+              />
+            )}
+            {currentPage === "settings" && (
+              <Settings 
+                token={token} 
+                navigateTo={navigateTo} 
+                onAuthError={handleLogout}
+              />
+            )}
+          </ErrorBoundary>
         </div>
       </main>
     </div>

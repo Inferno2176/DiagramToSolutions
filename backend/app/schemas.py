@@ -5,12 +5,22 @@ from datetime import datetime
 # --- Auth Schemas ---
 
 class UserCreate(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
+    username: str = Field(..., min_length=3, max_length=100)
+    email: Optional[str] = Field(None, max_length=255)
+    name: Optional[str] = Field(None, max_length=255)
     password: str = Field(..., min_length=6)
+
+class UserLogin(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: str
 
 class UserResponse(BaseModel):
     id: int
     username: str
+    email: Optional[str] = None
+    name: Optional[str] = None
+    is_active: bool = True
     created_at: datetime
 
     class Config:
@@ -19,10 +29,31 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user: Optional[UserResponse] = None
 
 class TokenData(BaseModel):
     username: Optional[str] = None
     user_id: Optional[int] = None
+
+
+# --- Project Schemas ---
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+
+class ProjectResponse(BaseModel):
+    id: str
+    user_id: int
+    name: str
+    description: Optional[str] = None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    diagrams_count: Optional[int] = 0
+
+    class Config:
+        from_attributes = True
 
 
 # --- Diagram Schemas ---
@@ -33,6 +64,10 @@ class DiagramListItem(BaseModel):
     status: str
     created_at: datetime
     completed_at: Optional[datetime] = None
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    architecture_name: Optional[str] = None
+    architecture_type: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -52,6 +87,10 @@ class DiagramDetailResponse(BaseModel):
     database_entities: Optional[List[Dict[str, Any]]] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    architecture_name: Optional[str] = None
+    architecture_type: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -61,5 +100,8 @@ class DiagramDetailResponse(BaseModel):
 
 class DashboardStats(BaseModel):
     total_uploads: int
+    total_analyses: int
     completed_analyses: int
+    processing: int
+    failed: int
     recent_projects: List[DiagramListItem]

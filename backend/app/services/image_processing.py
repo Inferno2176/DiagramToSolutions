@@ -178,16 +178,17 @@ def normalize_diagram_image(image_input) -> np.ndarray:
 
     height, width = img.shape[:2]
 
-    # 2. Rescale small diagrams to ensure OCR legible text (minimum dimension 1200px)
+    # 2. Rescale appropriately: only upscale very small diagrams (< 400px) and cap oversized (> 1600px)
+    max_dim = max(height, width)
     min_dim = min(height, width)
-    if min_dim < 1000:
-        scale = max(1.5, 1200.0 / max(min_dim, 1))
-        new_width = int(width * scale)
-        new_height = int(height * scale)
-        img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
-        height, width = img.shape[:2]
+    if max_dim > 1600:
+        scale = 1600.0 / max_dim
+        img = cv2.resize(img, (int(width * scale), int(height * scale)), interpolation=cv2.INTER_AREA)
+    elif min_dim < 400:
+        scale = min(2.0, 600.0 / max(min_dim, 1))
+        img = cv2.resize(img, (int(width * scale), int(height * scale)), interpolation=cv2.INTER_LINEAR)
 
-    # 3. Contrast Limited Adaptive Histogram Equalization (CLAHE) on L channel in LAB color space
+    # 3. Contrast Limited Adaptive Histogram Equalization (CLAHE) for crisp labels
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l_channel, a_channel, b_channel = cv2.split(lab)
@@ -199,13 +200,7 @@ def normalize_diagram_image(image_input) -> np.ndarray:
         logger.warning(f"CLAHE contrast enhancement skipped: {e}")
         enhanced = img
 
-    # 4. Light bilateral filter to eliminate compression noise while preserving sharp diagram text boundaries
-    try:
-        denoised = cv2.bilateralFilter(enhanced, d=5, sigmaColor=50, sigmaSpace=50)
-    except Exception:
-        denoised = enhanced
-
-    return denoised
+    return enhanced
 
 # Alias for backward compatibility
 preprocess_diagram_image = normalize_diagram_image

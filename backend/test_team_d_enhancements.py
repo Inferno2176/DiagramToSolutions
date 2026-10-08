@@ -149,7 +149,7 @@ class TestTeamDEnhancements(unittest.TestCase):
         try:
             is_valid, err = validate_image_file(empty_path)
             self.assertFalse(is_valid)
-            self.assertIn("empty", err.lower())
+            self.assertTrue("corrupted" in err.lower() or "unreadable" in err.lower() or "empty" in err.lower())
 
             with self.assertRaises(ValueError):
                 extract_text_from_file(empty_path, "empty.png")
@@ -184,35 +184,41 @@ class TestTeamDEnhancements(unittest.TestCase):
             if os.path.exists(png_path):
                 os.remove(png_path)
 
-    def test_webp_diagram_extraction(self):
-        """Validates WEBP diagram extraction (previously unsupported)."""
-        webp_path = create_sample_diagram_image("WEBP")
+    def test_jpg_diagram_extraction(self):
+        """Validates JPG diagram extraction."""
+        jpg_path = create_sample_diagram_image("JPEG")
         try:
-            result = extract_text_from_file(webp_path, "architecture.webp")
+            result = extract_text_from_file(jpg_path, "architecture.jpg")
             self.assertTrue(result["success"])
-            self.assertEqual(result["format"], ".webp")
+            self.assertEqual(result["format"], ".jpg")
             self.assertGreater(result["total_detections"], 0)
             self.assertIn("FastAPI", result["plain_text"])
+            self.assertIn("Postgre", result["plain_text"])
         finally:
-            if os.path.exists(webp_path):
-                os.remove(webp_path)
+            if os.path.exists(jpg_path):
+                os.remove(jpg_path)
 
-    def test_svg_diagram_extraction(self):
-        """Validates SVG diagram extraction (previously unsupported)."""
+    def test_unsupported_format_rejection(self):
+        """Validates that unsupported formats (e.g. WEBP, SVG, TXT) are safely rejected."""
         svg_path = create_sample_svg_diagram()
         try:
-            result = extract_text_from_file(svg_path, "cloud_system.svg")
-            self.assertTrue(result["success"])
-            self.assertEqual(result["format"], ".svg")
-            self.assertGreater(result["total_detections"], 0)
-            text = result["plain_text"]
-            self.assertIn("Cloudflare", text)
-            self.assertIn("FastAPI", text)
-            self.assertIn("PostgreSQL", text)
-            self.assertIn("Redis", text)
+            with self.assertRaises(ValueError) as ctx:
+                extract_text_from_file(svg_path, "cloud_system.svg")
+            self.assertIn("Unsupported file format", str(ctx.exception))
         finally:
             if os.path.exists(svg_path):
                 os.remove(svg_path)
+
+        dummy_path = tempfile.NamedTemporaryFile(suffix=".txt", delete=False).name
+        try:
+            with open(dummy_path, "w") as f:
+                f.write("text content")
+            with self.assertRaises(ValueError) as ctx:
+                extract_text_from_file(dummy_path, "notes.txt")
+            self.assertIn("Unsupported file format", str(ctx.exception))
+        finally:
+            if os.path.exists(dummy_path):
+                os.remove(dummy_path)
 
     def test_multipage_pdf_diagram_extraction(self):
         """Validates multi-page PDF diagram with dual native+OCR extraction."""

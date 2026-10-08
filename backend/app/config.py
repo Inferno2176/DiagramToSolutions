@@ -11,9 +11,19 @@ if BACKEND_DIR not in sys.path:
 # Load env variables from backend/.env if present
 load_dotenv(dotenv_path=os.path.join(BACKEND_DIR, ".env"))
 
-# Configure absolute database path for local SQLite to ensure consistency
-default_db_path = os.path.join(BACKEND_DIR, "diagram_to_solution.db")
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{default_db_path}")
+# Configure database connection (PostgreSQL with psycopg3 driver by default)
+DB_USER = os.getenv("POSTGRES_USER", "diagram_user")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "diagram_local_dev_secret")
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+DB_NAME = os.getenv("POSTGRES_DB", "diagram_solution")
+
+DEFAULT_POSTGRES_URL = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_POSTGRES_URL)
+
+# Normalize postgresql:// to postgresql+psycopg:// for psycopg3 compatibility if specified without driver
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretjwtkeyforlocaldevelopment123!")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -29,7 +39,7 @@ MODEL_REQUEST_TIMEOUT_SECONDS = float(os.getenv("MODEL_REQUEST_TIMEOUT_SECONDS",
 
 LLM_PROVIDER_CHAIN = [p.strip().lower() for p in os.getenv("LLM_PROVIDER_CHAIN", "gemini,grok,openai").split(",") if p.strip()]
 
-GEMINI_MODEL_CHAIN = [m.strip() for m in os.getenv("GEMINI_MODEL_CHAIN", "gemini-3.5-flash,gemini-3.8-flash,gemini-3.6-flash,gemini-3.1-pro-preview").split(",") if m.strip()]
+GEMINI_MODEL_CHAIN = [m.strip() for m in os.getenv("GEMINI_MODEL_CHAIN", "gemini-3.6-flash,gemini-3.8-flash,gemini-3.5-flash").split(",") if m.strip()]
 GROK_MODEL_CHAIN = [m.strip() for m in os.getenv("GROK_MODEL_CHAIN", "grok-2-latest,grok-beta").split(",") if m.strip()]
 OPENAI_MODEL_CHAIN = [m.strip() for m in os.getenv("OPENAI_MODEL_CHAIN", "gpt-4o,gpt-4o-mini").split(",") if m.strip()]
 

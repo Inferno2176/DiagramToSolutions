@@ -147,10 +147,11 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b border-dark-700 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                  <th className="pb-3 pr-4">File Name</th>
+                  <th className="pb-3 pr-4">Input Blueprint</th>
+                  <th className="pb-3 px-4">AI Architecture Solution</th>
+                  <th className="pb-3 px-4">Category</th>
                   <th className="pb-3 px-4">Pipeline Status</th>
-                  <th className="pb-3 px-4">Date Uploaded</th>
-                  <th className="pb-3 px-4">Completion Date</th>
+                  <th className="pb-3 px-4">Uploaded</th>
                   <th className="pb-3 pl-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -162,8 +163,25 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
 
                   return (
                     <tr key={item.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="py-3.5 pr-4 font-semibold text-slate-200 truncate max-w-[200px]" title={item.filename}>
-                        {item.filename}
+                      <td className="py-3.5 pr-4 font-semibold text-slate-200 truncate max-w-[180px]" title={item.filename}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-brand-cyan flex-shrink-0" />
+                          <span className="truncate">{item.filename}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-300 font-medium truncate max-w-[240px]" title={item.architecture_name || item.filename}>
+                        {item.architecture_name ? (
+                          <span className="text-white font-semibold">{item.architecture_name}</span>
+                        ) : (
+                          <span className="text-slate-500 italic">Processing...</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-400">
+                        {item.architecture_type ? (
+                          <span className="px-2 py-0.5 rounded bg-dark-700/60 border border-dark-600 text-slate-300">
+                            {item.architecture_type}
+                          </span>
+                        ) : "-"}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${getStatusClass(item.status)}`}>
@@ -171,10 +189,7 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-xs text-slate-400">
-                        {new Date(item.created_at).toLocaleString()}
-                      </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-400">
-                        {item.completed_at ? new Date(item.completed_at).toLocaleString() : "-"}
+                        {new Date(item.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-3.5 pl-4 text-right">
                         <div className="flex items-center justify-end gap-2.5">

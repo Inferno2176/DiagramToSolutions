@@ -21,7 +21,7 @@ class TokenAndErrorDetector:
             return ShiftReason.AUTH_ERROR
 
         # 2. Provider Quota Exhausted (Account/Billing quota exhausted across entire provider)
-        if any(term in err_str for term in ["insufficient_quota", "quota exceeded", "exceeded your current quota", "billing", "credit_limit", "quota_exhausted", "account limit"]):
+        if any(term in err_str for term in ["quota exceeded for project", "insufficient_quota", "billing", "credit_limit", "credit balance", "account limit", "quota_exhausted"]):
             return ShiftReason.PROVIDER_QUOTA_EXHAUSTED
 
         # 3. Model Token Exhausted (Individual generation output token limit)
@@ -32,8 +32,8 @@ class TokenAndErrorDetector:
         if any(term in err_str for term in ["context_length_exceeded", "context length", "context window", "maximum context length", "too many input tokens"]):
             return ShiftReason.MODEL_CONTEXT_LIMIT
 
-        # 5. Rate Limited (429 Rate limit, temporary concurrency)
-        if any(term in err_str for term in ["429", "resource_exhausted", "rate_limit", "rate limit", "too many requests"]):
+        # 5. Rate Limited (429 Rate limit, temporary concurrency, per-model rate limit)
+        if any(term in err_str for term in ["429", "resource_exhausted", "rate_limit", "rate limit", "too many requests", "retry in", "perprojectpermodel"]):
             return ShiftReason.RATE_LIMITED
 
         # 6. Model Overloaded / Timeout / Server Busy

@@ -115,6 +115,21 @@ def execute_migration():
             pg_session.add(new_user)
         pg_session.flush()
 
+        # Handle any orphaned diagrams referencing non-existent user_ids
+        existing_user_ids = {u.id for u in sqlite_users}
+        diagram_user_ids = {d.user_id for d in sqlite_diagrams}
+        missing_user_ids = diagram_user_ids - existing_user_ids
+        for missing_id in missing_user_ids:
+            logger.warning(f"Creating system placeholder user for orphaned diagram foreign key user_id={missing_id}")
+            placeholder_user = User(
+                id=missing_id,
+                username=f"system_test_user_{missing_id}",
+                hashed_password="orphaned_diagrams_placeholder_user",
+                created_at=datetime.now(timezone.utc)
+            )
+            pg_session.add(placeholder_user)
+        pg_session.flush()
+
         # Migrate Diagrams
         for d in sqlite_diagrams:
             new_diagram = Diagram(
@@ -139,14 +154,14 @@ def execute_migration():
         pg_session.flush()
 
         # STEP 6: Synchronize PostgreSQL Primary Key Sequences
-        pg_session.execute(text("SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1)) FROM users;"))
+        pg_session.execute(text("SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce((SELECT max(id) FROM users), 1));"))
         logger.info("PostgreSQL primary key sequence 'users_id_seq' synchronized.")
 
         # STEP 7: Comprehensive Validation Before Commit
         pg_users = pg_session.query(User).all()
         pg_diagrams = pg_session.query(Diagram).all()
 
-        user_count_pass = len(sqlite_users) == len(pg_users)
+        user_count_pass = len(pg_users) >= len(sqlite_users)
         diagram_count_pass = len(sqlite_diagrams) == len(pg_diagrams)
 
         if not user_count_pass or not diagram_count_pass:

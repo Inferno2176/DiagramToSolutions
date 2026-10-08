@@ -2,18 +2,20 @@ import os
 import json
 import shutil
 import uuid
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
+import logging
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import Response, FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db, SessionLocal
-from app.models import Diagram, User
+from app.models import Diagram, DiagramUpload, Project, OcrResult, AnalysisResult, User
 from app.schemas import DiagramDetailResponse, DiagramListItem
 from app.auth import get_current_user
 from app.config import UPLOAD_DIR
-from app.services.ocr_service import extract_text_from_diagram
-from app.services.llm_service import analyze_architecture
+from app.services.image_processing import validate_file_ingestion, MAX_FILE_SIZE, SUPPORTED_EXTS
 
 # ReportLab imports for PDF generation
 from reportlab.lib.pagesizes import letter
@@ -21,61 +23,18 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-router = APIRouter(prefix="/api/diagrams", tags=["diagrams"])
-
-def process_diagram_analysis(diagram_id: str):
-    db: Session = SessionLocal()
-    try:
-        diagram = db.query(Diagram).filter(Diagram.id == diagram_id).first()
-        if not diagram:
-            return
-        
-        diagram.status = "PROCESSING_OCR"
-        db.commit()
-        
-        ocr_text = extract_text_from_diagram(diagram.file_path)
-        diagram.ocr_text = ocr_text
-        db.commit()
-        
-        diagram.status = "PROCESSING_LLM"
-        db.commit()
-        
-        analysis = analyze_architecture(ocr_text)
-        
-        diagram.architecture_summary = analysis.get("architecture_summary")
-        diagram.workflow_explanation = analysis.get("workflow_explanation")
-        diagram.tech_stack = analysis.get("tech_stack")
-        diagram.components = analysis.get("components")
-        diagram.suggested_apis = analysis.get("suggested_apis")
-        diagram.database_entities = analysis.get("database_entities")
-        
-        diagram.status = "COMPLETED"
-        diagram.completed_at = datetime.utcnow()
-        db.commit()
-        
-    except Exception as e:
-        print(f"Error in background task for diagram {diagram_id}: {e}")
-        diagram = db.query(Diagram).filter(Diagram.id == diagram_id).first()
-        if diagram:
-            diagram.status = "FAILED"
-            db.commit()
-    finally:
-        db.close()
-
-
-import logging
-from app.services.image_processing import validate_file_ingestion, MAX_FILE_SIZE, SUPPORTED_EXTS
-
 logger = logging.getLogger("diagrams_router")
+router = APIRouter(prefix="/api/diagrams", tags=["diagrams"])
 
 @router.post("/upload", response_model=DiagramListItem, status_code=status.HTTP_201_CREATED)
 def upload_diagram(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    project_id: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"File received: {file.filename}")
+    logger.info(f"File received: {file.filename} from user {current_user.username}")
     
     file_ext = os.path.splitext(file.filename)[1].lower()
     if file_ext not in SUPPORTED_EXTS:
@@ -86,13 +45,11 @@ def upload_diagram(
             detail=err
         )
     
-    logger.info(f"File type detected: {file_ext}")
-    
     diagram_id = str(uuid.uuid4())
     unique_filename = f"{diagram_id}_{file.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
-    # Stream and track file size to enforce 15MB limit safely
+    # Stream and track file size to enforce limit safely
     total_size = 0
     chunk_size = 1024 * 1024  # 1 MB chunks
     try:
@@ -123,7 +80,7 @@ def upload_diagram(
             detail=f"Failed to save uploaded file: {str(e)}"
         )
 
-    # Perform full format, MIME, and corruption validation
+    # Validate file format and corruption
     is_valid, err_msg, _ = validate_file_ingestion(
         file_path=file_path,
         filename=file.filename,
@@ -138,22 +95,96 @@ def upload_diagram(
             detail=err_msg
         )
     
-    logger.info(f"File validated: {file.filename}")
-    
-    new_diagram = Diagram(
+    # Ensure Project association
+    target_project = None
+    if project_id:
+        target_project = db.query(Project).filter(
+            Project.id == project_id,
+            Project.user_id == current_user.id
+        ).first()
+        
+    if not target_project:
+        # Create or find default project for this file
+        proj_name = os.path.splitext(file.filename)[0].replace("_", " ").title()
+        target_project = Project(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            name=proj_name,
+            description=f"Project for blueprint {file.filename}",
+            status="active"
+        )
+        db.add(target_project)
+        db.flush()
+
+    mime_type = file.content_type or ("application/pdf" if file_ext == ".pdf" else f"image/{file_ext.lstrip('.')}")
+
+    # 1. Create DiagramUpload entity (New Normalized Data Model)
+    new_upload = DiagramUpload(
+        id=diagram_id,
+        project_id=target_project.id,
+        user_id=current_user.id,
+        original_filename=file.filename,
+        stored_filename=unique_filename,
+        file_type=file_ext,
+        mime_type=mime_type,
+        file_size=total_size,
+        storage_path=file_path,
+        processing_status="uploaded"
+    )
+    db.add(new_upload)
+
+    # 2. Dual-write to legacy Diagram model for backward compatibility
+    legacy_diagram = Diagram(
         id=diagram_id,
         user_id=current_user.id,
         filename=file.filename,
         file_path=file_path,
         status="uploaded"
     )
-    db.add(new_diagram)
+    db.add(legacy_diagram)
+
     db.commit()
-    db.refresh(new_diagram)
+    db.refresh(new_upload)
+
+    return {
+        "id": new_upload.id,
+        "filename": new_upload.original_filename,
+        "status": new_upload.processing_status,
+        "created_at": new_upload.uploaded_at,
+        "completed_at": None,
+        "project_id": target_project.id,
+        "project_name": target_project.name
+    }
+
+
+@router.get("", response_model=List[DiagramListItem])
+def list_diagrams(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    uploads = db.query(DiagramUpload).filter(
+        DiagramUpload.user_id == current_user.id
+    ).order_by(DiagramUpload.uploaded_at.desc()).all()
     
-    # OCR and analysis will be triggered synchronously via POST /api/analyze/{upload_id}
-    
-    return new_diagram
+    results = []
+    for u in uploads:
+        project_name = u.project.name if u.project else None
+        completed_at = u.analysis_result.completed_at if u.analysis_result else None
+        arch_name = u.analysis_result.architecture_name if u.analysis_result else None
+        arch_type = u.analysis_result.architecture_type if u.analysis_result else None
+        
+        results.append({
+            "id": u.id,
+            "filename": u.original_filename,
+            "status": u.processing_status,
+            "created_at": u.uploaded_at,
+            "completed_at": completed_at,
+            "project_id": u.project_id,
+            "project_name": project_name,
+            "architecture_name": arch_name,
+            "architecture_type": arch_type
+        })
+    return results
 
 
 @router.get("/{diagram_id}", response_model=DiagramDetailResponse)
@@ -162,18 +193,49 @@ def get_diagram_details(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    diagram = db.query(Diagram).filter(
-        Diagram.id == diagram_id,
-        Diagram.user_id == current_user.id
+    # Verify ownership in DiagramUpload first
+    upload = db.query(DiagramUpload).filter(
+        DiagramUpload.id == diagram_id,
+        DiagramUpload.user_id == current_user.id
     ).first()
     
-    if not diagram:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diagram not found or access denied"
-        )
+    if not upload:
+        # Fallback check on legacy Diagram table
+        diagram = db.query(Diagram).filter(
+            Diagram.id == diagram_id,
+            Diagram.user_id == current_user.id
+        ).first()
+        if not diagram:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diagram not found or access denied"
+            )
+        return diagram
+
+    # Retrieve associated OCR and AI Analysis results
+    ocr = upload.ocr_result
+    analysis = upload.analysis_result
     
-    return diagram
+    return {
+        "id": upload.id,
+        "filename": upload.original_filename,
+        "status": upload.processing_status,
+        "ocr_text": ocr.ocr_text if ocr else None,
+        "ocr_json": ocr.ocr_json if ocr else None,
+        "analysis_json": analysis.raw_analysis_json if analysis else None,
+        "architecture_summary": analysis.summary if analysis else None,
+        "workflow_explanation": analysis.workflow_explanation if analysis else None,
+        "tech_stack": analysis.tech_stack if analysis else None,
+        "components": analysis.components if analysis else None,
+        "suggested_apis": analysis.suggested_apis if analysis else None,
+        "database_entities": analysis.database_schema if analysis else None,
+        "created_at": upload.uploaded_at,
+        "completed_at": analysis.completed_at if analysis else None,
+        "project_id": upload.project_id,
+        "project_name": upload.project.name if upload.project else None,
+        "architecture_name": analysis.architecture_name if analysis else None,
+        "architecture_type": analysis.architecture_type if analysis else None
+    }
 
 
 @router.get("/{diagram_id}/download/{export_format}")
@@ -183,18 +245,45 @@ def download_diagram_report(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    diagram = db.query(Diagram).filter(
-        Diagram.id == diagram_id,
-        Diagram.user_id == current_user.id
+    upload = db.query(DiagramUpload).filter(
+        DiagramUpload.id == diagram_id,
+        DiagramUpload.user_id == current_user.id
     ).first()
     
-    if not diagram:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diagram not found"
-        )
-    
-    if diagram.status.upper() != "COMPLETED":
+    if not upload:
+        diagram = db.query(Diagram).filter(
+            Diagram.id == diagram_id,
+            Diagram.user_id == current_user.id
+        ).first()
+        if not diagram:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diagram not found or access denied"
+            )
+        upload_status = diagram.status
+        filename = diagram.filename
+        created_at = diagram.created_at
+        completed_at = diagram.completed_at
+        summary = diagram.architecture_summary
+        workflow = diagram.workflow_explanation
+        tech_stack = diagram.tech_stack
+        components = diagram.components
+        suggested_apis = diagram.suggested_apis
+        db_entities = diagram.database_entities
+    else:
+        upload_status = upload.processing_status
+        filename = upload.original_filename
+        created_at = upload.uploaded_at
+        analysis = upload.analysis_result
+        completed_at = analysis.completed_at if analysis else None
+        summary = analysis.summary if analysis else None
+        workflow = analysis.workflow_explanation if analysis else None
+        tech_stack = analysis.tech_stack if analysis else None
+        components = analysis.components if analysis else None
+        suggested_apis = analysis.suggested_apis if analysis else None
+        db_entities = analysis.database_schema if analysis else None
+
+    if upload_status.upper() != "COMPLETED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Analysis is not completed yet"
@@ -204,172 +293,113 @@ def download_diagram_report(
     
     if export_format == "json":
         report_data = {
-            "diagram_id": diagram.id,
-            "filename": diagram.filename,
-            "created_at": diagram.created_at.isoformat(),
-            "completed_at": diagram.completed_at.isoformat() if diagram.completed_at else None,
-            "architecture_summary": diagram.architecture_summary,
-            "workflow_explanation": diagram.workflow_explanation,
-            "tech_stack": diagram.tech_stack,
-            "components": diagram.components,
-            "suggested_apis": diagram.suggested_apis,
-            "database_entities": diagram.database_entities
+            "diagram_id": diagram_id,
+            "filename": filename,
+            "created_at": created_at.isoformat() if created_at else None,
+            "completed_at": completed_at.isoformat() if completed_at else None,
+            "architecture_summary": summary,
+            "workflow_explanation": workflow,
+            "tech_stack": tech_stack,
+            "components": components,
+            "suggested_apis": suggested_apis,
+            "database_entities": db_entities
         }
         json_content = json.dumps(report_data, indent=2)
         return Response(
             content=json_content,
             media_type="application/json",
-            headers={"Content-Disposition": f"attachment; filename={os.path.splitext(diagram.filename)[0]}_report.json"}
+            headers={"Content-Disposition": f"attachment; filename={os.path.splitext(filename)[0]}_report.json"}
         )
         
     elif export_format == "markdown":
-        md_content = f"# Engineering Report: {os.path.splitext(diagram.filename)[0]}\n\n"
-        md_content += f"**Original Diagram:** {diagram.filename}\n"
-        md_content += f"**Generated At:** {diagram.completed_at.strftime('%Y-%m-%d %H:%M:%S') if diagram.completed_at else 'N/A'}\n\n"
+        md_content = f"# Engineering Report: {os.path.splitext(filename)[0]}\n\n"
+        md_content += f"**Original Diagram:** {filename}\n"
+        md_content += f"**Generated At:** {completed_at.strftime('%Y-%m-%d %H:%M:%S') if completed_at else 'N/A'}\n\n"
         
         md_content += "## 1. Architecture Summary\n"
-        md_content += f"{diagram.architecture_summary}\n\n"
+        md_content += f"{summary or 'N/A'}\n\n"
         
         md_content += "## 2. Workflow Explanation\n"
-        md_content += f"{diagram.workflow_explanation}\n\n"
+        md_content += f"{workflow or 'N/A'}\n\n"
         
         md_content += "## 3. Technology Stack\n"
-        if diagram.tech_stack:
-            for layer, items in diagram.tech_stack.items():
-                md_content += f"- **{layer.capitalize()}:** {', '.join(items)}\n"
+        if tech_stack and isinstance(tech_stack, dict):
+            for layer, items in tech_stack.items():
+                if isinstance(items, list):
+                    md_content += f"- **{layer.capitalize()}:** {', '.join(items)}\n"
+        elif tech_stack and isinstance(tech_stack, list):
+            for t in tech_stack:
+                if isinstance(t, dict):
+                    md_content += f"- **{t.get('layer', 'Technology')}:** {t.get('technology', '')}\n"
         md_content += "\n"
         
-        md_content += "## 4. Components List\n"
-        if diagram.components:
-            for comp in diagram.components:
-                md_content += f"- **{comp.get('name')}** ({comp.get('type')}): {comp.get('description')}\n"
-        md_content += "\n"
-        
-        md_content += "## 5. Suggested APIs\n"
-        if diagram.suggested_apis:
-            for api in diagram.suggested_apis:
-                md_content += f"### `{api.get('method')}` {api.get('path')}\n"
-                md_content += f"**Description:** {api.get('description')}\n"
-                if api.get('request_body') != "None":
-                    md_content += f"**Request Body:**\n```json\n{api.get('request_body')}\n```\n"
-                md_content += f"**Response Body:**\n```json\n{api.get('response_body')}\n```\n\n"
-                
-        md_content += "## 6. Database Entities\n"
-        if diagram.database_entities:
-            for entity in diagram.database_entities:
-                md_content += f"### Table: `{entity.get('name')}`\n"
-                md_content += "| Column Name | Type/Attributes |\n"
-                md_content += "| --- | --- |\n"
-                for col in entity.get("columns", []):
-                    md_content += f"| {col.get('name')} | {col.get('type')} |\n"
-                md_content += "\n"
-                
+        md_content += "## 4. Components\n"
+        if components and isinstance(components, list):
+            for comp in components:
+                if isinstance(comp, dict):
+                    md_content += f"### {comp.get('name', 'Component')}\n"
+                    md_content += f"- **Description:** {comp.get('description', '')}\n"
+                    if comp.get('tech'):
+                        md_content += f"- **Tech:** {comp.get('tech')}\n"
+                    md_content += "\n"
+                    
         return Response(
             content=md_content,
             media_type="text/markdown",
-            headers={"Content-Disposition": f"attachment; filename={os.path.splitext(diagram.filename)[0]}_report.md"}
+            headers={"Content-Disposition": f"attachment; filename={os.path.splitext(filename)[0]}_report.md"}
         )
         
     elif export_format == "pdf":
-        temp_pdf_path = os.path.join(UPLOAD_DIR, f"{diagram.id}_report.pdf")
-        
+        temp_pdf_path = os.path.join(UPLOAD_DIR, f"temp_{diagram_id}.pdf")
         try:
             doc = SimpleDocTemplate(
                 temp_pdf_path,
                 pagesize=letter,
-                rightMargin=40,
-                leftMargin=40,
-                topMargin=40,
-                bottomMargin=40
+                rightMargin=40, leftMargin=40,
+                topMargin=40, bottomMargin=40
             )
             styles = getSampleStyleSheet()
-            
             title_style = ParagraphStyle(
                 'DocTitle',
                 parent=styles['Heading1'],
-                fontSize=20,
-                textColor=colors.HexColor('#1E293B'),
+                fontSize=22,
+                leading=26,
+                textColor=colors.HexColor('#0F766E'),
                 spaceAfter=15
             )
             h2_style = ParagraphStyle(
                 'DocH2',
                 parent=styles['Heading2'],
                 fontSize=14,
-                textColor=colors.HexColor('#0F766E'),
+                leading=18,
+                textColor=colors.HexColor('#1E293B'),
                 spaceBefore=14,
-                spaceAfter=6,
-                keepWithNext=True
+                spaceAfter=8
             )
             body_style = ParagraphStyle(
                 'DocBody',
-                parent=styles['BodyText'],
-                fontSize=9.5,
+                parent=styles['Normal'],
+                fontSize=10,
+                leading=14,
                 textColor=colors.HexColor('#334155'),
                 spaceAfter=8
             )
-            list_item_style = ParagraphStyle(
-                'DocListItem',
-                parent=styles['BodyText'],
-                fontSize=9.5,
-                textColor=colors.HexColor('#334155'),
-                leftIndent=15,
-                spaceAfter=4
-            )
-            
             story = []
-            
-            story.append(Paragraph(f"Engineering Architecture Report: {os.path.splitext(diagram.filename)[0]}", title_style))
-            story.append(Paragraph(f"<b>Original File:</b> {diagram.filename}  |  <b>Analyzed At:</b> {diagram.completed_at.strftime('%Y-%m-%d %H:%M:%S')}", body_style))
-            story.append(Spacer(1, 12))
+            story.append(Paragraph(f"Architecture Solution: {filename}", title_style))
+            story.append(Spacer(1, 10))
             
             story.append(Paragraph("1. Architecture Summary", h2_style))
-            story.append(Paragraph(diagram.architecture_summary or "N/A", body_style))
+            story.append(Paragraph(summary or "No summary provided.", body_style))
             story.append(Spacer(1, 8))
             
             story.append(Paragraph("2. Workflow Explanation", h2_style))
-            workflow_lines = (diagram.workflow_explanation or "").split('\n')
-            for line in workflow_lines:
-                if line.strip():
-                    story.append(Paragraph(line.strip(), body_style))
+            story.append(Paragraph(workflow or "No workflow description available.", body_style))
             story.append(Spacer(1, 8))
-            
-            story.append(Paragraph("3. Technology Stack", h2_style))
-            if diagram.tech_stack:
-                for layer, items in diagram.tech_stack.items():
-                    story.append(Paragraph(f"<b>{layer.capitalize()}:</b> {', '.join(items)}", list_item_style))
-            story.append(Spacer(1, 8))
-            
-            story.append(Paragraph("4. System Components", h2_style))
-            if diagram.components:
-                data = [["Name", "Type", "Description"]]
-                for comp in diagram.components:
-                    data.append([
-                        Paragraph(comp.get('name',''), body_style),
-                        Paragraph(comp.get('type',''), body_style),
-                        Paragraph(comp.get('description',''), body_style)
-                    ])
-                t = Table(data, colWidths=[110, 110, 310])
-                t.setStyle(TableStyle([
-                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0F766E')),
-                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                    ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-                    ('BOTTOMPADDING', (0,0), (-1,0), 6),
-                    ('TOPPADDING', (0,0), (-1,-1), 5),
-                    ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8FAFC')]),
-                    ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
-                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ]))
-                story.append(t)
-            else:
-                story.append(Paragraph("No component analysis available.", body_style))
             
             doc.build(story)
-            
             return FileResponse(
                 path=temp_pdf_path,
-                filename=f"{os.path.splitext(diagram.filename)[0]}_report.pdf",
+                filename=f"{os.path.splitext(filename)[0]}_report.pdf",
                 media_type="application/pdf"
             )
         except Exception as e:
@@ -383,3 +413,40 @@ def download_diagram_report(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported format '{export_format}'. Use pdf, markdown, or json."
         )
+
+
+@router.delete("/{diagram_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_diagram(
+    diagram_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    upload = db.query(DiagramUpload).filter(
+        DiagramUpload.id == diagram_id,
+        DiagramUpload.user_id == current_user.id
+    ).first()
+    
+    legacy_diagram = db.query(Diagram).filter(
+        Diagram.id == diagram_id,
+        Diagram.user_id == current_user.id
+    ).first()
+    
+    if not upload and not legacy_diagram:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diagram not found or access denied"
+        )
+        
+    if upload:
+        if upload.storage_path and os.path.exists(upload.storage_path):
+            try:
+                os.remove(upload.storage_path)
+            except Exception:
+                pass
+        db.delete(upload)
+        
+    if legacy_diagram:
+        db.delete(legacy_diagram)
+        
+    db.commit()
+    return None

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   ArrowLeft, Download, FileText, Code, Cpu, Database, 
-  Terminal, ShieldCheck, Info, CheckCircle2, ChevronRight 
+  Terminal, ShieldCheck, Info, CheckCircle2, ChevronRight, Sparkles, GitBranch 
 } from "lucide-react";
 
 export default function Results({ token, navigateTo, selectedDiagramId, onAuthError }) {
@@ -163,15 +163,15 @@ export default function Results({ token, navigateTo, selectedDiagramId, onAuthEr
 
       {/* Title Details Card */}
       <div className="glass-card p-6 border-l-4 border-l-brand-cyan">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white truncate" title={analysis.summary?.architecture_name || diagram.filename}>
-          {analysis.summary?.architecture_name || diagram.filename.split('.')[0]} Report
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white truncate" title={analysis?.summary?.architecture_name || diagram?.filename}>
+          {analysis?.summary?.architecture_name || (diagram?.filename || "Architecture").split('.')[0]} Report
         </h1>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-slate-400">
           <span className="font-semibold text-brand-cyan glow-cyan">Pipeline Completed</span>
           <span>•</span>
-          <span><b>File:</b> {diagram.filename}</span>
+          <span><b>File:</b> {diagram?.filename}</span>
           <span>•</span>
-          <span><b>Completed:</b> {new Date(diagram.completed_at || diagram.created_at).toLocaleString()}</span>
+          <span><b>Completed:</b> {new Date(diagram?.completed_at || diagram?.created_at || Date.now()).toLocaleString()}</span>
         </div>
         {analysis.model_execution_info && (
           <div className="mt-3 pt-3 border-t border-dark-700/50 flex items-center gap-2 text-xs text-slate-300">
@@ -205,20 +205,66 @@ export default function Results({ token, navigateTo, selectedDiagramId, onAuthEr
         
         {/* TAB 1: Summary */}
         {activeTab === "summary" && (
-          <div className="space-y-4 animate-fadeIn">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Info className="w-5 h-5 text-brand-cyan" />
-              Architecture Overview
-            </h3>
-            {analysis.summary ? (
-              <>
-                <p className="text-slate-200 text-sm font-semibold">Type: <span className="text-brand-cyan">{analysis.summary.architecture_type}</span></p>
-                <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line">
-                  {analysis.summary.overview}
-                </p>
-              </>
-            ) : (
-              <p className="text-slate-400 text-sm">No analysis data generated for this section.</p>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Info className="w-5 h-5 text-brand-cyan" />
+                Architecture Overview
+              </h3>
+              {analysis.summary ? (
+                <>
+                  <p className="text-slate-200 text-sm font-semibold">Type: <span className="text-brand-cyan">{analysis.summary.architecture_type}</span></p>
+                  <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line">
+                    {analysis.summary.overview}
+                  </p>
+                </>
+              ) : (
+                <p className="text-slate-400 text-sm">No analysis data generated for this section.</p>
+              )}
+            </div>
+
+            {/* Team D Multimodal Architecture Relationships & Spatial Layout if present */}
+            {analysis.architecture_relationships && (
+              <div className="pt-6 border-t border-dark-700/60 space-y-4">
+                <h4 className="text-base font-bold text-white flex items-center gap-2">
+                  <GitBranch className="w-4 h-4 text-brand-cyan" />
+                  Diagram Visual Relationships & Data Flows
+                </h4>
+
+                {analysis.diagram_analysis?.interpretation_summary && (
+                  <p className="text-xs text-slate-400 leading-relaxed bg-dark-950/40 p-3 rounded-lg border border-dark-700/40">
+                    <span className="text-brand-cyan font-semibold">Visual Layout Analysis: </span>
+                    {analysis.diagram_analysis.interpretation_summary}
+                  </p>
+                )}
+
+                {analysis.architecture_relationships.data_flows && analysis.architecture_relationships.data_flows.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Identified Flow Directionality</p>
+                    <div className="space-y-1.5">
+                      {analysis.architecture_relationships.data_flows.map((flow, fIdx) => (
+                        <div key={fIdx} className="text-xs font-mono bg-dark-950/60 border border-dark-700/60 text-brand-cyan px-3 py-2 rounded-lg flex items-center gap-2">
+                          <ChevronRight className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" />
+                          <span>{flow}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {analysis.architecture_relationships.containers_or_groupings && analysis.architecture_relationships.containers_or_groupings.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Containers & Spatial Groupings</p>
+                    <div className="flex flex-wrap gap-2">
+                      {analysis.architecture_relationships.containers_or_groupings.map((grp, gIdx) => (
+                        <span key={gIdx} className="text-xs bg-dark-800 border border-dark-700 text-slate-300 px-2.5 py-1 rounded-md">
+                          {typeof grp === "string" ? grp : grp.name || JSON.stringify(grp)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

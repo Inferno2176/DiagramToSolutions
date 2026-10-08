@@ -16,6 +16,8 @@ from app.services.image_processing import (
     SUPPORTED_EXTS
 )
 
+ALL_SUPPORTED_EXTS = SUPPORTED_EXTS
+
 logger = logging.getLogger("ocr_service")
 
 # Global model instance
@@ -31,8 +33,14 @@ def initialize_ocr():
             logger.info("Initializing PaddleOCR model...")
             # Disable MKLDNN/oneDNN to bypass Paddle v3 compatibility bugs on CPU
             os.environ["FLAGS_use_mkldnn"] = "0"
-            os.environ["FLAGS_enable_onednn"] = "0"
-            _ocr_model = PaddleOCR(use_angle_cls=True, lang="en", device="cpu", enable_mkldnn=False)
+            _ocr_model = PaddleOCR(
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+                lang="en",
+                device="cpu",
+                enable_mkldnn=False
+            )
             logger.info("PaddleOCR model initialized successfully.")
         except Exception as e:
             logger.error(f"Failed to initialize PaddleOCR: {e}", exc_info=True)

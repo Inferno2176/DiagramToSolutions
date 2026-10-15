@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Clock, Eye, Download, AlertTriangle, FileText, Code, Terminal } from "lucide-react";
+import { downloadSpecification } from "../utils/exportReport";
 
 const STATUS_MAPPING = {
   uploaded: "Uploaded",
@@ -17,28 +17,14 @@ const getStatusLabel = (status) => {
   return STATUS_MAPPING[s] || status;
 };
 
-const getStatusClass = (status) => {
-  if (!status) return "";
-  const s = status.toLowerCase();
-  switch (s) {
-    case "completed":
-      return "bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/20";
-    case "failed":
-      return "bg-red-500/10 text-red-400 border border-red-500/20";
-    case "llm_quota_exceeded":
-      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-    case "uploaded":
-      return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
-    default:
-      // ocr_processing, ocr_completed, llm_processing
-      return "bg-brand-purple/10 text-brand-purple border border-brand-purple/20 animate-pulse";
-  }
-};
-
 export default function History({ token, navigateTo, setSelectedDiagramId, onAuthError }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [downloadDropdownId, setDownloadDropdownId] = useState(null);
+  const [downloadToast, setDownloadToast] = useState(null);
 
   const API_URL = "http://localhost:8000";
 
@@ -65,214 +51,327 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
 
   useEffect(() => {
     fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const handleDownload = (diagramId, filename, format) => {
-    fetch(`${API_URL}/api/diagrams/${diagramId}/download/${format}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-      if (res.status === 401) {
-        if (onAuthError) onAuthError();
-        return;
-      }
-      if (!res.ok) throw new Error("File not ready or not found");
-      return res.blob();
-    })
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename.split('.')[0]}_report.${format === 'markdown' ? 'md' : format}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    })
-    .catch(err => {
-      alert("Error: " + err.message);
+  const handleDownload = async (diagramId, filename, format) => {
+    setDownloadDropdownId(null);
+    setDownloadToast({
+      type: "loading",
+      text: `Exporting ${format.toUpperCase()} for ${filename || "blueprint"}...`,
     });
+
+    try {
+      const res = await downloadSpecification({
+        diagramId,
+        filename,
+        format,
+        token,
+        API_URL,
+      });
+
+      setDownloadToast({
+        type: "success",
+        text: `Export complete: ${res?.filename || filename}`,
+      });
+      setTimeout(() => setDownloadToast(null), 3500);
+    } catch (err) {
+      setDownloadToast({
+        type: "error",
+        text: `Export failed: ${err.message || "Could not generate file"}`,
+      });
+      setTimeout(() => setDownloadToast(null), 4500);
+    }
+  };
+
+  const filteredHistory = history.filter((item) => {
+    const matchesSearch =
+      !search ||
+      item.filename?.toLowerCase().includes(search.toLowerCase()) ||
+      item.architecture_name?.toLowerCase().includes(search.toLowerCase());
+
+    const s = item.status ? item.status.toLowerCase() : "";
+    if (statusFilter === "completed") return matchesSearch && s === "completed";
+    if (statusFilter === "failed") return matchesSearch && ["failed", "llm_quota_exceeded"].includes(s);
+    if (statusFilter === "queue") return matchesSearch && ["uploaded", "ocr_processing", "ocr_completed", "llm_processing"].includes(s);
+
+    return matchesSearch;
+  });
+
+  const getFileIcon = (filename) => {
+    const ext = filename?.split(".").pop().toLowerCase();
+    if (ext === "pdf") {
+      return (
+        <span className="w-8 h-8 rounded-lg bg-purple-950/60 border border-purple-400/20 flex items-center justify-center text-purple-300 shrink-0 shadow-[0_0_8px_rgba(200,160,240,0.15)]">
+          <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+        </span>
+      );
+    }
+    return (
+      <span className="w-8 h-8 rounded-lg bg-sky-950/60 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.15)]">
+        <span className="material-symbols-outlined text-[18px]">image</span>
+      </span>
+    );
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[500px]">
-        <div className="w-12 h-12 border-4 border-brand-cyan/20 border-t-brand-cyan rounded-full animate-spin mb-4" />
-        <p className="text-slate-400 text-sm">Retrieving historic pipelines...</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex flex-col items-center justify-center min-h-[500px]">
+        <div className="w-12 h-12 border-3 border-sky-400/20 border-t-primary rounded-full animate-spin mb-4" />
+        <p className="text-slate-300 text-sm font-label font-medium tracking-wide">
+          Retrieving historic pipeline telemetry from PostgreSQL...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Breadcrumbs */}
-      <button
-        onClick={() => navigateTo("dashboard")}
-        className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Dashboard
-      </button>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 animate-fadeIn">
+      
+      {/* Top Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-sky-950/60 text-sky-300 border border-sky-400/25">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+              AUDIT RECORD &amp; TELEMETRY ARCHIVE
+            </span>
+            <span className="text-xs text-slate-400 font-mono">Immutable Log</span>
+          </div>
+          <h1 className="font-headline font-bold text-3xl sm:text-4xl text-white tracking-tight leading-tight">
+            Analysis History &amp; Spec Archives
+          </h1>
+          <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
+            Search and reopen previously generated architecture blueprints and engineering solutions without rerunning AI pipelines.
+          </p>
+        </div>
 
-      <div>
-        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-          Analysis History Logs
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Review all architectural layouts scanned by the system.
-        </p>
+        <button
+          onClick={() => navigateTo("upload")}
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(56,189,248,0.35)] flex items-center gap-1.5 shrink-0"
+        >
+          <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+          <span>Upload New Blueprint</span>
+        </button>
       </div>
 
-      <div className="glass-card p-6 border border-dark-700/60">
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg p-3 text-sm flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-4 text-xs flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-[20px] text-red-400 shrink-0">error</span>
             <span>{error}</span>
           </div>
-        )}
+          <button onClick={() => fetchHistory()} className="text-xs font-bold underline hover:text-white">
+            Retry
+          </button>
+        </div>
+      )}
 
-        {history.length === 0 ? (
-          <div className="border-2 border-dashed border-dark-700 rounded-xl flex flex-col items-center justify-center p-12 text-center">
-            <Clock className="w-10 h-10 text-slate-500 mb-2" />
-            <p className="text-slate-400 text-sm font-semibold">No history found</p>
-            <p className="text-slate-500 text-xs mt-1">You haven't uploaded any diagrams yet.</p>
+      {/* Filter and Search Bar */}
+      <div className="glass-panel rounded-2xl p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          
+          {/* Search Box */}
+          <div className="relative w-full sm:max-w-md">
+            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">
+              search
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filter by filename or architecture..."
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-900/80 border border-sky-400/20 rounded-xl text-white placeholder:text-slate-500 text-xs font-body outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all shadow-inner"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            )}
+          </div>
+
+          {/* Status Filters */}
+          <div className="flex items-center gap-1 bg-slate-900/80 border border-sky-500/15 p-1 rounded-xl w-full sm:w-auto justify-center">
             <button
-              onClick={() => navigateTo("upload")}
-              className="text-xs text-brand-cyan hover:underline mt-4 font-bold"
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                statusFilter === "all"
+                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
+                  : "text-slate-400 hover:text-white"
+              }`}
             >
-              Analyze your first drawing
+              All ({history.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("completed")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                statusFilter === "completed"
+                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Completed ({history.filter(h => h.status?.toLowerCase() === "completed").length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("queue")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                statusFilter === "queue"
+                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Processing
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("failed")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                statusFilter === "failed"
+                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Failed
             </button>
           </div>
+
+        </div>
+
+        {/* History Table */}
+        {filteredHistory.length === 0 ? (
+          <div className="border border-sky-400/15 rounded-xl p-10 text-center space-y-2">
+            <span className="material-symbols-outlined text-slate-500 text-[36px]">history</span>
+            <p className="text-slate-300 text-sm font-semibold">No historic records matching filter</p>
+            <p className="text-slate-500 text-xs">Try adjusting your search query or reset filter pills.</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse">
+          <div className="overflow-x-auto -mx-6 px-6">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-dark-700 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                  <th className="pb-3 pr-4">Input Blueprint</th>
-                  <th className="pb-3 px-4">AI Architecture Solution</th>
-                  <th className="pb-3 px-4">Category</th>
-                  <th className="pb-3 px-4">Pipeline Status</th>
-                  <th className="pb-3 px-4">Uploaded</th>
-                  <th className="pb-3 pl-4 text-right">Actions</th>
+                <tr className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-900/60 border-y border-sky-500/10">
+                  <th className="py-3 px-4 rounded-l-lg font-bold">Source Diagram</th>
+                  <th className="py-3 px-3 font-bold">Architecture Scope</th>
+                  <th className="py-3 px-3 font-bold">Status</th>
+                  <th className="py-3 px-3 font-bold">Timestamp</th>
+                  <th className="py-3 px-4 rounded-r-lg font-bold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-dark-700/50">
-                {history.map((item) => {
-                  const isStale = (new Date() - new Date(item.created_at)) > 5 * 60 * 1000;
+              <tbody className="text-sm divide-y divide-sky-500/5">
+                {filteredHistory.map((item) => {
                   const statusLower = item.status ? item.status.toLowerCase() : "";
-                  const isProcessing = ["ocr_processing", "ocr_completed", "llm_processing"].includes(statusLower);
+                  const isCompleted = statusLower === "completed";
 
                   return (
-                    <tr key={item.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="py-3.5 pr-4 font-semibold text-slate-200 truncate max-w-[180px]" title={item.filename}>
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-brand-cyan flex-shrink-0" />
-                          <span className="truncate">{item.filename}</span>
+                    <tr key={item.id} className="hover:bg-sky-500/[0.04] transition-colors group">
+                      <td className="py-3.5 px-4 font-semibold text-slate-200 flex items-center gap-3">
+                        {getFileIcon(item.filename)}
+                        <div className="min-w-0 max-w-[240px]">
+                          <span className="font-bold text-slate-100 block truncate group-hover:text-primary transition-colors" title={item.filename}>
+                            {item.filename}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-mono font-normal">
+                            ID: #{item.id}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300 font-medium truncate max-w-[240px]" title={item.architecture_name || item.filename}>
-                        {item.architecture_name ? (
-                          <span className="text-white font-semibold">{item.architecture_name}</span>
-                        ) : (
-                          <span className="text-slate-500 italic">Processing...</span>
+
+                      <td className="py-3.5 px-3 text-xs text-slate-300">
+                        {item.architecture_name || (
+                          <span className="text-slate-500 italic">Synthesized Architecture</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-400">
-                        {item.architecture_type ? (
-                          <span className="px-2 py-0.5 rounded bg-dark-700/60 border border-dark-600 text-slate-300">
-                            {item.architecture_type}
+
+                      <td className="py-3.5 px-3">
+                        {isCompleted ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-950/60 border border-sky-400/30 text-sky-300">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                            Completed
                           </span>
-                        ) : "-"}
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900 border border-slate-700 text-slate-400">
+                            {getStatusLabel(item.status)}
+                          </span>
+                        )}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${getStatusClass(item.status)}`}>
-                          {getStatusLabel(item.status)}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-400">
+
+                      <td className="py-3.5 px-3 text-xs text-slate-400 font-mono">
                         {new Date(item.created_at).toLocaleDateString()}
                       </td>
-                      <td className="py-3.5 pl-4 text-right">
-                        <div className="flex items-center justify-end gap-2.5">
-                          {statusLower === "completed" ? (
+
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-2 justify-end relative">
+                          {isCompleted ? (
                             <>
                               <button
+                                type="button"
                                 onClick={() => {
                                   setSelectedDiagramId(item.id);
                                   navigateTo("results");
                                 }}
-                                className="text-xs text-brand-cyan hover:underline font-bold mr-1"
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 hover:brightness-110 shadow-[0_0_10px_rgba(56,189,248,0.25)] transition-all"
                               >
                                 View Report
                               </button>
-                              <div className="relative group/down inline-block">
+
+                              {/* Download Toggle */}
+                              <div className="relative">
                                 <button
-                                  className="p-1 text-slate-400 hover:text-brand-purple hover:bg-brand-purple/10 rounded transition-all"
-                                  title="Download Report"
+                                  type="button"
+                                  onClick={() => setDownloadDropdownId(downloadDropdownId === item.id ? null : item.id)}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-sky-300 hover:bg-sky-500/10 border border-transparent hover:border-sky-400/20 transition-all flex items-center justify-center"
+                                  title="Download"
                                 >
-                                  <Download className="w-3.5 h-3.5" />
+                                  <span className="material-symbols-outlined text-[18px]">download</span>
                                 </button>
-                                
-                                <div className="absolute right-0 bottom-full mb-1 hidden group-hover/down:flex flex-col bg-dark-850 border border-dark-700 rounded-lg py-1 shadow-xl z-50 text-left min-w-[100px]">
-                                  <button 
-                                    onClick={() => handleDownload(item.id, item.filename, 'pdf')}
-                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                  >
-                                    PDF
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDownload(item.id, item.filename, 'markdown')}
-                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                  >
-                                    Markdown
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDownload(item.id, item.filename, 'json')}
-                                    className="px-3 py-1 hover:bg-dark-700 text-xs text-slate-200 hover:text-white"
-                                  >
-                                    JSON
-                                  </button>
-                                </div>
+
+                                {downloadDropdownId === item.id && (
+                                  <div className="absolute right-0 bottom-full mb-1 w-36 bg-[#111828] border border-sky-400/25 rounded-xl py-1 shadow-2xl z-50 animate-fadeIn">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownload(item.id, item.filename, "pdf")}
+                                      className="w-full px-3 py-1.5 text-xs text-left text-slate-300 hover:text-white hover:bg-sky-500/15 flex items-center gap-2"
+                                    >
+                                      <span className="material-symbols-outlined text-[15px] text-red-400">picture_as_pdf</span>
+                                      PDF
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownload(item.id, item.filename, "markdown")}
+                                      className="w-full px-3 py-1.5 text-xs text-left text-slate-300 hover:text-white hover:bg-sky-500/15 flex items-center gap-2"
+                                    >
+                                      <span className="material-symbols-outlined text-[15px] text-sky-400">code</span>
+                                      Markdown
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownload(item.id, item.filename, "json")}
+                                      className="w-full px-3 py-1.5 text-xs text-left text-slate-300 hover:text-white hover:bg-sky-500/15 flex items-center gap-2"
+                                    >
+                                      <span className="material-symbols-outlined text-[15px] text-purple-400">data_object</span>
+                                      JSON
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </>
-                          ) : (statusLower === "failed" || (isProcessing && isStale && statusLower === "ocr_processing")) ? (
-                            <button
-                              onClick={() => {
-                                  setSelectedDiagramId(item.id);
-                                  navigateTo("progress");
-                              }}
-                              className="text-xs text-brand-cyan hover:underline font-bold"
-                            >
-                              Retry Analysis
-                            </button>
-                          ) : (statusLower === "llm_quota_exceeded" || (isProcessing && isStale && (statusLower === "ocr_completed" || statusLower === "llm_processing"))) ? (
-                            <button
-                              onClick={() => {
-                                  setSelectedDiagramId(item.id);
-                                  navigateTo("progress");
-                              }}
-                              className="text-xs text-brand-cyan hover:underline font-bold"
-                            >
-                              Retry AI Analysis
-                            </button>
-                          ) : statusLower === "uploaded" ? (
-                            <button
-                              onClick={() => {
-                                  setSelectedDiagramId(item.id);
-                                  navigateTo("progress");
-                              }}
-                              className="text-xs text-brand-cyan hover:underline font-bold"
-                            >
-                              Start Analysis
-                            </button>
                           ) : (
                             <button
+                              type="button"
                               onClick={() => {
                                 setSelectedDiagramId(item.id);
                                 navigateTo("progress");
                               }}
-                              className="text-xs text-brand-purple hover:underline"
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-950/60 border border-sky-400/30 text-sky-300 hover:bg-sky-400/10 transition-all flex items-center gap-1"
                             >
-                              Track Progress
+                              <span className="material-symbols-outlined text-[14px]">sync</span>
+                              Inspect State
                             </button>
                           )}
                         </div>
@@ -284,7 +383,27 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
             </table>
           </div>
         )}
+
       </div>
+
+      {/* Floating Download Toast Notification */}
+      {downloadToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-900/95 border border-sky-400/30 text-white shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md animate-fadeIn">
+          {downloadToast.type === "loading" ? (
+            <div className="w-4 h-4 border-2 border-sky-400/30 border-t-sky-400 rounded-full animate-spin shrink-0" />
+          ) : (
+            <span
+              className={`material-symbols-outlined text-[18px] shrink-0 ${
+                downloadToast.type === "success" ? "text-cyan-400" : "text-red-400"
+              }`}
+            >
+              {downloadToast.type === "success" ? "check_circle" : "error"}
+            </span>
+          )}
+          <span className="text-xs font-medium text-slate-200">{downloadToast.text}</span>
+        </div>
+      )}
+
     </div>
   );
 }

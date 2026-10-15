@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-dark-950 text-slate-100 font-sans antialiased overflow-x-hidden;
+    @apply bg-dark-950 text-slate-100 font-sans antialiased overflow-x-hidden transition-colors duration-200;
     background-image: 
       radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
       radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
@@ -19,13 +19,155 @@
   }
 }
 
+/* Light Mode Overrides */
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.04) 0px, transparent 50%);
+}
+
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .glass-panel-subtle {
+  background: rgba(248, 250, 252, 0.9) !important;
+  border-color: rgba(226, 232, 240, 0.8) !important;
+}
+
+html.light .glass-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light header {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Light mode text & element readability overrides */
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+html.light .bg-slate-900,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/50 {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+}
+
+html.light .bg-\[\#0b0f19\],
+html.light .bg-\[\#030712\],
+html.light .bg-\[\#070b13\],
+html.light .bg-\[\#070e1c\],
+html.light .bg-\[\#0b1325\]\/70,
+html.light .bg-\[\#0f172a\]\/70,
+html.light .bg-\[\#111828\] {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-\[\#0b0f19\]\/80,
+html.light .bg-\[\#0b0f19\]\/90,
+html.light .bg-\[\#0b0f19\]\/95 {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+
+html.light .border-slate-700,
+html.light .border-slate-800,
+html.light .border-slate-800\/80,
+html.light .border-slate-700\/80,
+html.light .border-slate-700\/50 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light kbd {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Stitch Glacier Design System Styles */
+.glass-panel {
+  background: rgba(20, 28, 46, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(125, 211, 252, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 8, 20, 0.37);
+}
+
+.glass-panel-subtle {
+  background: rgba(15, 21, 36, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(125, 211, 252, 0.08);
+}
+
+.glacier-glow {
+  box-shadow: 0 0 20px -3px rgba(56, 189, 248, 0.25);
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  vertical-align: middle;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Glassmorphism Styles */
 .glass-card {
-  @apply bg-dark-900/60 backdrop-blur-xl border border-dark-700/50 shadow-2xl rounded-2xl;
+  @apply bg-surface-container/70 backdrop-blur-xl border border-sky-400/15 shadow-2xl rounded-2xl;
 }
 
 .glass-card-hover {
-  @apply transition-all duration-300 hover:border-brand-cyan/40 hover:shadow-brand-cyan/10 hover:bg-dark-900/80;
+  @apply transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_20px_rgba(56,189,248,0.15)] hover:bg-surface-container-high/80;
 }
 
 .glass-input {

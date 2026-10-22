@@ -33,19 +33,15 @@ export default function App() {
   const [username, setUsername] = useState(localStorage.getItem("username") || "");
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [selectedDiagramId, setSelectedDiagramId] = useState(null);
+  const [selectedDiagramMode, setSelectedDiagramMode] = useState("auto");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [theme, setTheme] = useState(() => {
-    // Reset stale dark setting from previous development session to default to Terra Light
     const saved = localStorage.getItem("theme");
-    if (saved === "dark") {
-      localStorage.setItem("theme", "light");
-      return "light";
-    }
-    return saved || "light";
+    return saved === "dark" ? "dark" : "light";
   });
 
   useEffect(() => {
@@ -88,6 +84,9 @@ export default function App() {
     setSearchModalOpen(false);
     if (options.diagramId) {
       setSelectedDiagramId(options.diagramId);
+    }
+    if (options.mode) {
+      setSelectedDiagramMode(options.mode);
     }
   };
 
@@ -357,6 +356,8 @@ export default function App() {
               token={token}
               navigateTo={navigateTo}
               setSelectedDiagramId={setSelectedDiagramId}
+              selectedDiagramMode={selectedDiagramMode}
+              setSelectedDiagramMode={setSelectedDiagramMode}
               onAuthError={handleLogout}
             />
           )}
@@ -365,6 +366,7 @@ export default function App() {
               token={token}
               navigateTo={navigateTo}
               selectedDiagramId={selectedDiagramId}
+              selectedDiagramMode={selectedDiagramMode}
               onAuthError={handleLogout}
             />
           )}
@@ -374,6 +376,7 @@ export default function App() {
               navigateTo={navigateTo}
               selectedDiagramId={selectedDiagramId}
               setSelectedDiagramId={setSelectedDiagramId}
+              selectedDiagramMode={selectedDiagramMode}
               onAuthError={handleLogout}
             />
           )}

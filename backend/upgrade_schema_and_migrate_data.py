@@ -16,9 +16,12 @@ def upgrade_and_migrate():
     
     # 1. Update users table columns if needed
     with engine.connect() as conn:
-        cols = [c[0] for c in conn.execute(
-            text("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
-        ).fetchall()]
+        if engine.dialect.name == "sqlite":
+            cols = [c[1] for c in conn.execute(text("PRAGMA table_info(users)")).fetchall()]
+        else:
+            cols = [c[0] for c in conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+            ).fetchall()]
         
         print(f"Current columns in users: {cols}")
         
@@ -39,7 +42,11 @@ def upgrade_and_migrate():
             
         if "updated_at" not in cols:
             print("Adding 'updated_at' column to users...")
-            conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();"))
+            if engine.dialect.name == "sqlite":
+                conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP;"))
+                conn.execute(text("UPDATE users SET updated_at = created_at WHERE updated_at IS NULL;"))
+            else:
+                conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();"))
             
         if "email" not in cols:
             print("Adding 'email' column to users...")

@@ -31,10 +31,11 @@ def upload_diagram(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     project_id: Optional[str] = Form(None),
+    mode: Optional[str] = Form("auto"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"File received: {file.filename} from user {current_user.username}")
+    logger.info(f"File received: {file.filename} (mode={mode}) from user {current_user.username}")
     
     file_ext = os.path.splitext(file.filename)[1].lower()
     if file_ext not in SUPPORTED_EXTS:

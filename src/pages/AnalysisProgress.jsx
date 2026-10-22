@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 
-export default function AnalysisProgress({ token, navigateTo, selectedDiagramId, onAuthError }) {
+export default function AnalysisProgress({
+  token,
+  navigateTo,
+  selectedDiagramId,
+  selectedDiagramMode = "auto",
+  onAuthError
+}) {
   const [status, setStatus] = useState("PENDING");
   const [error, setError] = useState("");
   const [activeStage, setActiveStage] = useState(1);
@@ -15,7 +21,8 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
     const timer2 = setTimeout(() => setActiveStage(3), 6000);
 
     try {
-      const res = await fetch(`${API_URL}/api/analyze/${selectedDiagramId}`, {
+      const modeParam = encodeURIComponent(selectedDiagramMode || "auto");
+      const res = await fetch(`${API_URL}/api/analyze/${selectedDiagramId}?mode=${modeParam}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -55,11 +62,17 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
     }
     runAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDiagramId, token]);
+  }, [selectedDiagramId, token, selectedDiagramMode]);
 
   const stages = [
-    { id: 1, title: "Blueprint Ingestion & Normalization", desc: "Verifying MIME headers, image geometry, and integrity hashes." },
-    { id: 2, title: "PaddleOCR Spatial Entity Mining", desc: "Detecting service names, technologies, protocols, and text bounding boxes." },
+    { id: 1, title: "Blueprint Ingestion & Normalization", desc: "Verifying MIME headers, image geometry, and background illumination." },
+    {
+      id: 2,
+      title: selectedDiagramMode === "handwritten" ? "Multimodal Vision & Shadow-Free OCR" : "Hybrid Spatial Entity Mining & OCR",
+      desc: selectedDiagramMode === "handwritten"
+        ? "Eliminating paper/whiteboard shadows and transcribing handwritten notes with Gemini Vision."
+        : "Extracting service names, technologies, protocols, and text bounding boxes via PaddleOCR & Vision."
+    },
     { id: 3, title: "Gemini Multi-Modal Architecture Reasoning", desc: "Synthesizing microservice topology, workflows, and infrastructure guardrails." },
     { id: 4, title: "API Specifications & Schema Synthesis", desc: "Generating REST contracts, database tables, and exportable engineering docs." },
   ];

@@ -27,7 +27,13 @@ export default function Login({ onLoginSuccess, theme, toggleTheme }) {
           body: JSON.stringify({ username, password }),
         });
 
-        const data = await res.json();
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = { detail: `Server error (${res.status} ${res.statusText})` };
+        }
+
         if (!res.ok) {
           throw new Error(data.detail || "Registration failed");
         }
@@ -47,7 +53,13 @@ export default function Login({ onLoginSuccess, theme, toggleTheme }) {
           body: params,
         });
 
-        const data = await res.json();
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = { detail: `Server error (${res.status} ${res.statusText})` };
+        }
+
         if (!res.ok) {
           throw new Error(data.detail || "Incorrect username or password");
         }

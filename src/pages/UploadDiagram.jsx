@@ -1,8 +1,16 @@
 import React, { useState, useRef } from "react";
 
-export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId, onAuthError }) {
+export default function UploadDiagram({
+  token,
+  navigateTo,
+  setSelectedDiagramId,
+  selectedDiagramMode = "auto",
+  setSelectedDiagramMode,
+  onAuthError
+}) {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
+  const [extractionMode, setExtractionMode] = useState(selectedDiagramMode || "auto");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -74,6 +82,11 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("mode", extractionMode);
+
+    if (setSelectedDiagramMode) {
+      setSelectedDiagramMode(extractionMode);
+    }
 
     try {
       const res = await fetch(`${API_URL}/api/diagrams/upload`, {
@@ -93,7 +106,7 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
       }
 
       setSelectedDiagramId(data.id);
-      navigateTo("progress");
+      navigateTo("progress", { diagramId: data.id, mode: extractionMode });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -246,6 +259,85 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
               </button>
             </div>
           )}
+
+          {/* Extraction Engine & Handwriting Optimization Mode */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#f5f1ea] border border-[#E5E1D8] space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px] text-[#397A55]">draw</span>
+                <span className="text-xs sm:text-sm font-bold text-[#242820]">Extraction &amp; Handwriting Engine</span>
+              </div>
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#E7F0E8] border border-green-200/80 text-[#2A5A3F] font-semibold">
+                SMART HYBRID OCR
+              </span>
+            </div>
+            <p className="text-[11px] sm:text-xs text-[#73766F] leading-relaxed">
+              Choose how text and layout will be parsed. Auto-detect balances local PaddleOCR speed with Gemini Multimodal Vision for whiteboard photos, paper sketches, and cursive handwriting.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              {[
+                {
+                  id: "auto",
+                  label: "Auto-Detect (Smart)",
+                  badge: "Recommended",
+                  desc: "Analyzes stroke variance & switches dynamically between local OCR and vision",
+                  icon: "auto_awesome"
+                },
+                {
+                  id: "handwritten",
+                  label: "Handwritten / Whiteboard",
+                  badge: "Shadow Filter",
+                  desc: "Applies background division, contrast enhancement, and multimodal vision transcription",
+                  icon: "edit"
+                },
+                {
+                  id: "digital",
+                  label: "Standard Digital Blueprint",
+                  badge: "Fast Local",
+                  desc: "Runs high-speed local PaddleOCR for clean vector/raster architecture diagrams",
+                  icon: "terminal"
+                },
+              ].map((m) => {
+                const isSelected = extractionMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setExtractionMode(m.id)}
+                    className={`
+                      p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer
+                      ${isSelected
+                        ? "bg-white border-[#397A55] shadow-xs text-[#242820] ring-1 ring-[#397A55]/30"
+                        : "bg-[#eae6de]/50 border-transparent hover:border-[#E5E1D8] text-[#73766F] hover:bg-white/60"}
+                    `}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`material-symbols-outlined text-[19px] ${isSelected ? "text-[#397A55]" : "text-[#73766F]"}`}>
+                          {m.icon}
+                        </span>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold ${
+                          isSelected ? "bg-[#E7F0E8] text-[#2A5A3F]" : "bg-[#ded9cf] text-[#5e5548]"
+                        }`}>
+                          {m.badge}
+                        </span>
+                      </div>
+                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        isSelected ? "border-[#397A55] bg-[#397A55]" : "border-[#73766F]"
+                      }`}>
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </span>
+                    </div>
+                    <div className="mt-2.5">
+                      <p className="text-xs font-bold text-[#242820]">{m.label}</p>
+                      <p className="text-[11px] text-[#73766F] mt-0.5 leading-snug">{m.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Submit Actions */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">

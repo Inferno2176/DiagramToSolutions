@@ -15,10 +15,14 @@ MAX_OCR_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".pdf"}
 
 @router.post("/ocr")
-def run_ocr(file: UploadFile = File(...)):
+def run_ocr(
+    file: UploadFile = File(...),
+    mode: str = "auto"
+):
     """
     Accepts an upload of an image (PNG, JPG, JPEG) or PDF,
     performs OCR / diagram text extraction, and returns the structured extraction result.
+    Supports mode='auto', mode='handwritten', or mode='digital'.
     """
     filename = file.filename
     ext = os.path.splitext(filename)[1].lower()
@@ -57,8 +61,8 @@ def run_ocr(file: UploadFile = File(...)):
                 detail="Uploaded file is empty (0 bytes)."
             )
             
-        # 3. Call the OCR service
-        ocr_result = extract_text_from_file(temp_file_path, filename)
+        # 3. Call the OCR service with requested mode
+        ocr_result = extract_text_from_file(temp_file_path, filename, mode=mode)
         return ocr_result
         
     except ValueError as val_err:

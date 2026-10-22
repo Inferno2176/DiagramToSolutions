@@ -12,6 +12,8 @@ from app.services.image_processing import (
     validate_image_file,
     validate_pdf_file,
     normalize_diagram_image,
+    preprocess_handwritten_diagram,
+    detect_handwriting_features,
     SUPPORTED_IMAGE_EXTS,
     SUPPORTED_EXTS
 )
@@ -146,12 +148,16 @@ def _process_ocr_result(ocr_result, min_confidence: float = 0.25) -> Tuple[List[
         
     return detected_text_list, plain_text_parts
 
-def extract_text_from_file(file_path: str, filename: str) -> Dict[str, Any]:
+def extract_text_from_file(file_path: str, filename: str, mode: str = "auto") -> Dict[str, Any]:
     """
-    Extracts text from diagram files (PNG, JPG, JPEG, PDF) using PaddleOCR.
-    Handles validation, normalization, page-by-page PDF conversion, and spatial ordering.
+    Extracts text from diagram files (PNG, JPG, JPEG, PDF) using a smart hybrid engine.
+    Supports mode='auto', mode='handwritten', and mode='digital'.
+    - 'handwritten': invokes dedicated shadow-removal preprocessor and multimodal vision extractor.
+    - 'digital': invokes local PaddleOCR directly.
+    - 'auto': automatically inspects image for handwriting/whiteboard features,
+              running vision extraction for sketches or falling back if local OCR detects no text.
     """
-    logger.info(f"File received: {filename}")
+    logger.info(f"File received: {filename} (mode={mode})")
 
     # 1. Full validation guard
     is_valid, err_msg, detected_type = validate_file_ingestion(file_path, filename)
@@ -163,12 +169,46 @@ def extract_text_from_file(file_path: str, filename: str) -> Dict[str, Any]:
     ext = os.path.splitext(filename)[1].lower()
     logger.info(f"File type detected: {ext}")
 
+    mode_normalized = (mode or "auto").strip().lower()
+    if mode_normalized not in ("auto", "handwritten", "digital"):
+        mode_normalized = "auto"
+
+    # Explicit handwritten mode for images
+    if ext in SUPPORTED_IMAGE_EXTS and mode_normalized == "handwritten":
+        logger.info(f"Invoking handwritten extraction for {filename}")
+        from app.services.handwritten_ocr import extract_handwritten_diagram_text
+        return extract_handwritten_diagram_text(file_path, filename)
+
+    # Auto-detection heuristic for images
+    if ext in SUPPORTED_IMAGE_EXTS and mode_normalized == "auto":
+        features = detect_handwriting_features(file_path)
+        if features.get("is_handwritten"):
+            logger.info(f"Auto-detected handwritten/whiteboard diagram for {filename} (score: {features.get('confidence')})")
+            from app.services.handwritten_ocr import extract_handwritten_diagram_text
+            try:
+                result = extract_handwritten_diagram_text(file_path, filename)
+                result["detection_metrics"] = features.get("metrics", {})
+                return result
+            except Exception as hw_err:
+                logger.warning(f"Handwritten extraction failed: {hw_err}. Falling back to standard PaddleOCR...")
+
     ocr_model = get_ocr_model()
 
     if ext == ".pdf":
         return _process_pdf_file(ocr_model, file_path, filename)
     elif ext in SUPPORTED_IMAGE_EXTS:
-        return _process_image_file(ocr_model, file_path, filename)
+        try:
+            return _process_image_file(ocr_model, file_path, filename)
+        except ValueError as val_err:
+            # If standard PaddleOCR detected no text in auto mode, attempt handwritten vision fallback
+            if mode_normalized == "auto" and "No text detected" in str(val_err):
+                logger.info(f"PaddleOCR detected no text for {filename}. Attempting handwritten vision fallback...")
+                from app.services.handwritten_ocr import extract_handwritten_diagram_text
+                try:
+                    return extract_handwritten_diagram_text(file_path, filename)
+                except Exception:
+                    pass
+            raise val_err
     else:
         err = "Unsupported file format. Please upload PNG, JPG, JPEG, or PDF."
         logger.error(f"File processing failed for {filename}: {err}")
@@ -236,12 +276,16 @@ def _process_image_file(ocr_model: PaddleOCR, file_path: str, filename: str) -> 
         "success": True,
         "filename": filename,
         "format": os.path.splitext(filename)[1].lower(),
+        "extraction_engine": "paddleocr",
+        "diagram_type": "digital_diagram",
+        "is_handwritten": False,
         "total_pages": 1,
         "pages_processed": 1,
         "pages": pages_output,
         "total_detections": len(sorted_detections),
         "detected_text": sorted_detections,
-        "plain_text": plain_text
+        "plain_text": plain_text,
+        "relationships": []
     }
 
 def _process_pdf_file(ocr_model: PaddleOCR, file_path: str, filename: str) -> Dict[str, Any]:

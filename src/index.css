@@ -6,7 +6,11 @@
 
 :root {
   --color-page-bg: #F8F6F0;
+  --color-surface-dim: #EAE5DB;
+  --color-surface-bright: #FAF6F0;
+  --color-surface-lowest: #FFFFFF;
   --color-surface-white: #FFFFFF;
+  --color-surface-low: #F5F1EA;
   --color-surface-cream: #F2EFE7;
   --color-surface-high: #EAE5DB;
   --color-surface-highest: #E2DCD1;
@@ -19,15 +23,35 @@
   --color-border-subtle: #DBD6CC;
 }
 
+html.dark {
+  --color-page-bg: #0F120E;
+  --color-surface-dim: #151913;
+  --color-surface-bright: #1D231B;
+  --color-surface-lowest: #161A14;
+  --color-surface-white: #161A14;
+  --color-surface-low: #191E16;
+  --color-surface-cream: #1D231B;
+  --color-surface-high: #242B21;
+  --color-surface-highest: #2C3528;
+  --color-accent-green: #48996B;
+  --color-accent-green-hover: #5AB380;
+  --color-accent-pale: #163323;
+  --color-text-primary: #EAEFE8;
+  --color-text-secondary: #9EABA0;
+  --color-border-warm: #262D22;
+  --color-border-subtle: #2F372A;
+}
+
 @layer base {
   html, body {
     margin: 0;
     padding: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   body {
-    background-color: #F8F6F0;
-    color: #242820;
+    background-color: var(--color-page-bg);
+    color: var(--color-text-primary);
     font-family: 'Inter', 'Nunito Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -39,13 +63,13 @@
   }
 
   input, select, textarea {
-    background-color: #FFFFFF;
-    color: #242820;
-    border-color: #E5E1D8;
+    background-color: var(--color-surface-lowest);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-warm);
   }
 
   input::placeholder, textarea::placeholder {
-    color: #73766F;
+    color: var(--color-text-secondary);
     opacity: 0.75;
   }
 }
@@ -67,7 +91,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Terra Light Design System Surfaces */
+/* Terra Design System Surfaces */
 .terra-card,
 .glass-panel,
 .glass-card {
@@ -166,27 +190,153 @@
   border: 1px solid #E5E1D8 !important;
 }
 
-/* Clean Custom Scrollbar matching Warm Palette */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #F8F6F0;
+  background: var(--color-page-bg);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #D8D2C6;
+  background: var(--color-border-subtle);
   border-radius: 9999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #C4BEB1;
+  background: var(--color-border-warm);
 }
 
-/* Terra Light Canvas Foundation */
-html, body {
-  background-color: #F8F6F0 !important;
-  color: #242820 !important;
+/* ========================================================
+   DARK THEME SPECIFIC OVERRIDES (.dark)
+   Ensures seamless obsidian & forest night visuals
+   ======================================================== */
+
+html.dark,
+html.dark body {
+  background-color: #0F120E !important;
+  color: #EAEFE8 !important;
+}
+
+html.dark .terra-card,
+html.dark .glass-panel,
+html.dark .glass-card,
+html.dark .bg-white {
+  background-color: #161A14 !important;
+  border-color: #262D22 !important;
+  color: #EAEFE8 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+html.dark .terra-surface-subtle,
+html.dark .glass-panel-subtle,
+html.dark .bg-\[\#F2EFE7\],
+html.dark .bg-\[\#f5f1ea\] {
+  background-color: #1D231B !important;
+  border-color: #283024 !important;
+  color: #EAEFE8 !important;
+}
+
+html.dark .bg-\[\#f0e8db\],
+html.dark .bg-\[\#eae6de\],
+html.dark .bg-\[\#EAE5DB\] {
+  background-color: #242B21 !important;
+  border-color: #313A2C !important;
+  color: #EAEFE8 !important;
+}
+
+html.dark .bg-\[\#F8F6F0\] {
+  background-color: #0F120E !important;
+}
+
+html.dark .text-\[\#242820\] {
+  color: #EAEFE8 !important;
+}
+
+html.dark .text-\[\#4a4e4a\],
+html.dark .text-\[\#5e5548\] {
+  color: #B5BFB2 !important;
+}
+
+html.dark .text-\[\#73766F\] {
+  color: #929E8F !important;
+}
+
+html.dark .border-\[\#E5E1D8\],
+html.dark .border-\[\#D8D2C6\],
+html.dark .border-\[\#DBD6CC\] {
+  border-color: #262D22 !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea,
+html.dark .terra-input,
+html.dark .glass-input {
+  background-color: #191E16 !important;
+  color: #EAEFE8 !important;
+  border-color: #2E372A !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #727E6F !important;
+}
+
+html.dark .terra-btn-secondary,
+html.dark .glass-btn-secondary {
+  background-color: #1D231B !important;
+  color: #EAEFE8 !important;
+  border-color: #2E372A !important;
+}
+
+html.dark .terra-btn-secondary:hover,
+html.dark .glass-btn-secondary:hover {
+  background-color: #242B21 !important;
+  border-color: #384233 !important;
+}
+
+html.dark .bg-\[\#E7F0E8\] {
+  background-color: #163323 !important;
+  color: #52B77D !important;
+  border-color: #224D36 !important;
+}
+
+html.dark .bg-\[\#E7F0E8\]\/50,
+html.dark .bg-\[\#E7F0E8\]\/60 {
+  background-color: rgba(22, 51, 35, 0.45) !important;
+  border-color: #224D36 !important;
+}
+
+html.dark .text-\[\#2A5A3F\],
+html.dark .text-\[\#397A55\] {
+  color: #52B77D !important;
+}
+
+html.dark .bg-\[\#f8e0a8\],
+html.dark .bg-\[\#FBF0DB\],
+html.dark .bg-\[\#ECE7DC\] {
+  background-color: #2A2417 !important;
+  color: #E5BC64 !important;
+  border-color: #42361E !important;
+}
+
+html.dark .text-\[\#705c30\],
+html.dark .text-\[\#7E540C\],
+html.dark .text-\[\#554020\] {
+  color: #E5BC64 !important;
+}
+
+html.dark .bg-\[\#FCE8E7\] {
+  background-color: #331515 !important;
+  color: #F07070 !important;
+  border-color: #4F2020 !important;
+}
+
+html.dark .text-\[\#A82826\] {
+  color: #F07070 !important;
+}
+
+html.dark .border-green-200,
+html.dark .border-green-200\/80 {
+  border-color: #224D36 !important;
 }

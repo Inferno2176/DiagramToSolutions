@@ -2,7 +2,7 @@ import os
 import uuid
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from fastapi.concurrency import run_in_threadpool
@@ -57,6 +57,7 @@ def get_diagram_analysis(
             "database_entities": diagram.database_entities
         }
         
+    ocr_json_dict = ocr_record.ocr_json if (ocr_record and isinstance(ocr_record.ocr_json, dict)) else {}
     return {
         "upload_id": upload.id,
         "status": upload.processing_status,
@@ -67,13 +68,19 @@ def get_diagram_analysis(
         "components": analysis_record.components if analysis_record else None,
         "suggested_apis": analysis_record.suggested_apis if analysis_record else None,
         "database_entities": analysis_record.database_schema if analysis_record else None,
-        "ocr_text": ocr_record.ocr_text if ocr_record else None
+        "ocr_text": ocr_record.ocr_text if ocr_record else None,
+        "ocr_json": ocr_record.ocr_json if ocr_record else None,
+        "is_handwritten": ocr_json_dict.get("is_handwritten", False),
+        "diagram_type": ocr_json_dict.get("diagram_type", "digital_diagram"),
+        "extraction_engine": ocr_json_dict.get("extraction_engine", "paddleocr")
     }
 
 
 @router.post("/{upload_id}")
 async def analyze_diagram(
     upload_id: str,
+    mode: str = Query("auto", description="Extraction mode: 'auto', 'handwritten', or 'digital'"),
+    force: bool = Query(False, description="Force re-generation of architecture analysis even if cached"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -101,21 +108,24 @@ async def analyze_diagram(
     filename = upload.original_filename if upload else legacy_diagram.filename
     current_status = upload.processing_status if upload else legacy_diagram.status
     
-    # 1. Check whether a completed architecture analysis already exists (Recovery without re-running Gemini)
-    if upload and upload.analysis_result and upload.analysis_result.raw_analysis_json:
-        logger.info(f"Analysis already completed for {upload_id}. Returning stored analysis.")
-        return {
-            "upload_id": upload.id,
-            "status": upload.processing_status,
-            "analysis": upload.analysis_result.raw_analysis_json
-        }
-    elif legacy_diagram and legacy_diagram.status and legacy_diagram.status.upper() == "COMPLETED" and legacy_diagram.analysis_json:
-        logger.info(f"Legacy analysis already completed for {upload_id}. Returning stored analysis.")
-        return {
-            "upload_id": legacy_diagram.id,
-            "status": legacy_diagram.status,
-            "analysis": legacy_diagram.analysis_json
-        }
+    # 1. Check whether a completed architecture analysis already exists (Recovery without re-running Gemini unless force=True)
+    if not force:
+        if upload and upload.analysis_result and upload.analysis_result.raw_analysis_json:
+            logger.info(f"Analysis already completed for {upload_id}. Returning stored analysis.")
+            return {
+                "upload_id": upload.id,
+                "status": upload.processing_status,
+                "analysis": upload.analysis_result.raw_analysis_json
+            }
+        elif legacy_diagram and legacy_diagram.status and legacy_diagram.status.upper() == "COMPLETED" and legacy_diagram.analysis_json:
+            logger.info(f"Legacy analysis already completed for {upload_id}. Returning stored analysis.")
+            return {
+                "upload_id": legacy_diagram.id,
+                "status": legacy_diagram.status,
+                "analysis": legacy_diagram.analysis_json
+            }
+    else:
+        logger.info(f"Force re-analysis requested for {upload_id}. Bypassing cached LLM analysis.")
         
     if not os.path.exists(file_path):
         if upload:
@@ -129,7 +139,7 @@ async def analyze_diagram(
         )
         
     # Check existing OCR
-    ocr_record = upload.ocr_result if upload else None
+    ocr_record = db.query(OcrResult).filter(OcrResult.diagram_upload_id == upload.id).first() if upload else None
     ocr_text = ocr_record.ocr_text if ocr_record else (legacy_diagram.ocr_text if legacy_diagram else None)
     ocr_json = ocr_record.ocr_json if ocr_record else (legacy_diagram.ocr_json if legacy_diagram else None)
     
@@ -144,7 +154,7 @@ async def analyze_diagram(
         db.commit()
         
         try:
-            ocr_result = await run_in_threadpool(extract_text_from_file, file_path, filename)
+            ocr_result = await run_in_threadpool(extract_text_from_file, file_path, filename, mode=mode or "auto")
             if not ocr_result:
                 raise ValueError("OCR text extraction returned empty payload")
                 
@@ -153,7 +163,11 @@ async def analyze_diagram(
                 "detected_text": ocr_result.get("detected_text", []),
                 "pages": ocr_result.get("pages", []),
                 "total_detections": ocr_result.get("total_detections", 0),
-                "pages_processed": ocr_result.get("pages_processed", 1)
+                "pages_processed": ocr_result.get("pages_processed", 1),
+                "extraction_engine": ocr_result.get("extraction_engine", "paddleocr"),
+                "diagram_type": ocr_result.get("diagram_type", "digital_diagram"),
+                "is_handwritten": ocr_result.get("is_handwritten", False),
+                "relationships": ocr_result.get("relationships", [])
             }
             
             if not ocr_text or not str(ocr_text).strip():
@@ -161,13 +175,20 @@ async def analyze_diagram(
                 
             # Store OCR result in normalized OcrResult entity
             if upload:
+                detections = ocr_result.get("detected_text", [])
+                calc_conf = (
+                    sum(float(d.get("confidence", 0.95)) for d in detections) / max(len(detections), 1)
+                    if detections else 0.95
+                )
+                if not ocr_record:
+                    ocr_record = db.query(OcrResult).filter(OcrResult.diagram_upload_id == upload.id).first()
                 if not ocr_record:
                     ocr_record = OcrResult(
                         id=str(uuid.uuid4()),
                         diagram_upload_id=upload.id,
                         ocr_text=ocr_text,
                         ocr_json=ocr_json,
-                        confidence=0.95,
+                        confidence=round(calc_conf, 4),
                         total_detections=ocr_json.get("total_detections", 0),
                         pages_processed=ocr_json.get("pages_processed", 1),
                         status="completed"
@@ -176,6 +197,9 @@ async def analyze_diagram(
                 else:
                     ocr_record.ocr_text = ocr_text
                     ocr_record.ocr_json = ocr_json
+                    ocr_record.confidence = round(calc_conf, 4)
+                    ocr_record.total_detections = ocr_json.get("total_detections", 0)
+                    ocr_record.pages_processed = ocr_json.get("pages_processed", 1)
                     ocr_record.status = "completed"
                 upload.processing_status = "ocr_completed"
                 
@@ -188,6 +212,7 @@ async def analyze_diagram(
             logger.info(f"OCR completed and saved for {upload_id}")
             
         except Exception as e:
+            db.rollback()
             if upload:
                 upload.processing_status = "failed"
             if legacy_diagram:
@@ -231,7 +256,7 @@ async def analyze_diagram(
 
         # Store in normalized AnalysisResult entity
         if upload:
-            analysis_record = upload.analysis_result
+            analysis_record = db.query(AnalysisResult).filter(AnalysisResult.diagram_upload_id == upload.id).first()
             if not analysis_record:
                 analysis_record = AnalysisResult(
                     id=str(uuid.uuid4()),
@@ -263,6 +288,8 @@ async def analyze_diagram(
                 analysis_record.components = analysis.get("components")
                 analysis_record.suggested_apis = analysis.get("suggested_apis")
                 analysis_record.database_schema = db_entities
+                analysis_record.architecture_relationships = analysis.get("architecture_relationships")
+                analysis_record.diagram_analysis = analysis.get("diagram_analysis")
                 analysis_record.raw_analysis_json = analysis
                 analysis_record.analysis_status = "completed"
                 analysis_record.completed_at = now
@@ -284,6 +311,7 @@ async def analyze_diagram(
         logger.info(f"Gemini analysis completed and saved for {upload_id}")
         
     except GeminiQuotaExceededError as e:
+        db.rollback()
         if upload:
             upload.processing_status = "llm_quota_exceeded"
         if legacy_diagram:
@@ -303,6 +331,7 @@ async def analyze_diagram(
             }
         )
     except Exception as e:
+        db.rollback()
         if upload:
             upload.processing_status = "failed"
         if legacy_diagram:

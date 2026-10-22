@@ -93,7 +93,7 @@ export default function Settings({ token, navigateTo, onAuthError }) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 animate-fadeIn">
-      
+
       {/* Return Header */}
       <div className="flex items-center justify-between">
         <button
@@ -147,7 +147,7 @@ export default function Settings({ token, navigateTo, onAuthError }) {
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#397A55] to-transparent opacity-80" />
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          
+
           {/* Identity Section */}
           <div className="space-y-4">
             <h3 className="font-headline font-bold text-lg text-[#242820] flex items-center gap-2 pb-2 border-b border-[#E5E1D8]">

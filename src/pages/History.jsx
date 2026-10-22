@@ -102,13 +102,13 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
     const ext = filename?.split(".").pop().toLowerCase();
     if (ext === "pdf") {
       return (
-        <span className="w-8 h-8 rounded-lg bg-purple-950/60 border border-purple-400/20 flex items-center justify-center text-purple-300 shrink-0 shadow-[0_0_8px_rgba(200,160,240,0.15)]">
+        <span className="w-8 h-8 rounded-lg bg-[#f0e8db] border border-[#E5E1D8] flex items-center justify-center text-[#6b6358] shrink-0 shadow-xs">
           <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
         </span>
       );
     }
     return (
-      <span className="w-8 h-8 rounded-lg bg-sky-950/60 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.15)]">
+      <span className="w-8 h-8 rounded-lg bg-[#E7F0E8] border border-green-200/60 flex items-center justify-center text-[#397A55] shrink-0 shadow-xs">
         <span className="material-symbols-outlined text-[18px]">image</span>
       </span>
     );
@@ -117,9 +117,9 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex flex-col items-center justify-center min-h-[500px]">
-        <div className="w-12 h-12 border-3 border-sky-400/20 border-t-primary rounded-full animate-spin mb-4" />
-        <p className="text-slate-300 text-sm font-label font-medium tracking-wide">
-          Retrieving historic pipeline telemetry from PostgreSQL...
+        <div className="w-12 h-12 border-3 border-[#E7F0E8] border-t-[#397A55] rounded-full animate-spin mb-4" />
+        <p className="text-[#73766F] text-sm font-label font-medium tracking-wide">
+          Retrieving historic pipeline telemetry from database...
         </p>
       </div>
     );
@@ -132,23 +132,23 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-sky-950/60 text-sky-300 border border-sky-400/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-[#f0e8db] text-[#5e5548] border border-[#E5E1D8]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#397A55]" />
               AUDIT RECORD &amp; TELEMETRY ARCHIVE
             </span>
-            <span className="text-xs text-slate-400 font-mono">Immutable Log</span>
+            <span className="text-xs text-[#73766F] font-mono">Immutable Log</span>
           </div>
-          <h1 className="font-headline font-bold text-3xl sm:text-4xl text-white tracking-tight leading-tight">
+          <h1 className="font-headline font-bold text-3xl sm:text-4xl text-[#242820] tracking-tight leading-tight">
             Analysis History &amp; Spec Archives
           </h1>
-          <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
+          <p className="text-sm text-[#73766F] max-w-2xl leading-relaxed">
             Search and reopen previously generated architecture blueprints and engineering solutions without rerunning AI pipelines.
           </p>
         </div>
 
         <button
           onClick={() => navigateTo("upload")}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(56,189,248,0.35)] flex items-center gap-1.5 shrink-0"
+          className="px-4 py-2 rounded-xl bg-[#397A55] hover:bg-[#2E6345] text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0"
         >
           <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
           <span>Upload New Blueprint</span>
@@ -157,24 +157,24 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
 
       {/* Error Alert */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-4 text-xs flex items-center justify-between gap-3 animate-fadeIn">
+        <div className="bg-[#FCE8E7] border border-red-200 text-[#A82826] rounded-2xl p-4 text-xs flex items-center justify-between gap-3 animate-fadeIn">
           <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-[20px] text-red-400 shrink-0">error</span>
+            <span className="material-symbols-outlined text-[20px] text-[#A82826] shrink-0">error</span>
             <span>{error}</span>
           </div>
-          <button onClick={() => fetchHistory()} className="text-xs font-bold underline hover:text-white">
+          <button onClick={() => fetchHistory()} className="text-xs font-bold underline hover:text-black">
             Retry
           </button>
         </div>
       )}
 
       {/* Filter and Search Bar */}
-      <div className="glass-panel rounded-2xl p-6 space-y-6">
+      <div className="bg-white rounded-2xl p-6 border border-[#E5E1D8] shadow-[0_4px_20px_rgba(46,50,48,0.04)] space-y-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           
           {/* Search Box */}
           <div className="relative w-full sm:max-w-md">
-            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">
+            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-[#73766F]">
               search
             </span>
             <input
@@ -182,12 +182,12 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filter by filename or architecture..."
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-900/80 border border-sky-400/20 rounded-xl text-white placeholder:text-slate-500 text-xs font-body outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all shadow-inner"
+              className="w-full pl-11 pr-4 py-2.5 bg-[#f5f1ea] border border-[#E5E1D8] rounded-xl text-[#242820] placeholder:text-[#73766F] text-xs font-body outline-none focus:border-[#397A55] focus:ring-1 focus:ring-[#397A55]/30 transition-all shadow-inner"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#73766F] hover:text-[#242820]"
               >
                 <span className="material-symbols-outlined text-[16px]">close</span>
               </button>
@@ -195,14 +195,14 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
           </div>
 
           {/* Status Filters */}
-          <div className="flex items-center gap-1 bg-slate-900/80 border border-sky-500/15 p-1 rounded-xl w-full sm:w-auto justify-center">
+          <div className="flex items-center gap-1 bg-[#F2EFE7] border border-[#E5E1D8] p-1 rounded-xl w-full sm:w-auto justify-center">
             <button
               type="button"
               onClick={() => setStatusFilter("all")}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                 statusFilter === "all"
-                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#397A55] text-white font-bold shadow-xs"
+                  : "text-[#73766F] hover:text-[#242820] hover:bg-[#eae6de]"
               }`}
             >
               All ({history.length})
@@ -212,8 +212,8 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
               onClick={() => setStatusFilter("completed")}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                 statusFilter === "completed"
-                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#397A55] text-white font-bold shadow-xs"
+                  : "text-[#73766F] hover:text-[#242820] hover:bg-[#eae6de]"
               }`}
             >
               Completed ({history.filter(h => h.status?.toLowerCase() === "completed").length})
@@ -223,8 +223,8 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
               onClick={() => setStatusFilter("queue")}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                 statusFilter === "queue"
-                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#397A55] text-white font-bold shadow-xs"
+                  : "text-[#73766F] hover:text-[#242820] hover:bg-[#eae6de]"
               }`}
             >
               Processing
@@ -234,8 +234,8 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
               onClick={() => setStatusFilter("failed")}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                 statusFilter === "failed"
-                  ? "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#397A55] text-white font-bold shadow-xs"
+                  : "text-[#73766F] hover:text-[#242820] hover:bg-[#eae6de]"
               }`}
             >
               Failed
@@ -246,16 +246,16 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
 
         {/* History Table */}
         {filteredHistory.length === 0 ? (
-          <div className="border border-sky-400/15 rounded-xl p-10 text-center space-y-2">
-            <span className="material-symbols-outlined text-slate-500 text-[36px]">history</span>
-            <p className="text-slate-300 text-sm font-semibold">No historic records matching filter</p>
-            <p className="text-slate-500 text-xs">Try adjusting your search query or reset filter pills.</p>
+          <div className="border border-[#E5E1D8] rounded-xl p-10 text-center space-y-2">
+            <span className="material-symbols-outlined text-[#73766F] text-[36px]">history</span>
+            <p className="text-[#242820] text-sm font-semibold">No historic records matching filter</p>
+            <p className="text-[#73766F] text-xs">Try adjusting your search query or reset filter pills.</p>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-6 px-6">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-900/60 border-y border-sky-500/10">
+                <tr className="text-[11px] uppercase tracking-wider text-[#73766F] bg-[#f5f1ea]/80 border-y border-[#E5E1D8]">
                   <th className="py-3 px-4 rounded-l-lg font-bold">Source Diagram</th>
                   <th className="py-3 px-3 font-bold">Architecture Scope</th>
                   <th className="py-3 px-3 font-bold">Status</th>
@@ -263,45 +263,45 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
                   <th className="py-3 px-4 rounded-r-lg font-bold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="text-sm divide-y divide-sky-500/5">
+              <tbody className="text-sm divide-y divide-[#E5E1D8]/60">
                 {filteredHistory.map((item) => {
                   const statusLower = item.status ? item.status.toLowerCase() : "";
                   const isCompleted = statusLower === "completed";
 
                   return (
-                    <tr key={item.id} className="hover:bg-sky-500/[0.04] transition-colors group">
-                      <td className="py-3.5 px-4 font-semibold text-slate-200 flex items-center gap-3">
+                    <tr key={item.id} className="hover:bg-[#f5f1ea]/50 transition-colors group">
+                      <td className="py-3.5 px-4 font-semibold text-[#242820] flex items-center gap-3">
                         {getFileIcon(item.filename)}
                         <div className="min-w-0 max-w-[240px]">
-                          <span className="font-bold text-slate-100 block truncate group-hover:text-primary transition-colors" title={item.filename}>
+                          <span className="font-bold text-[#242820] block truncate group-hover:text-[#397A55] transition-colors" title={item.filename}>
                             {item.filename}
                           </span>
-                          <span className="text-[11px] text-slate-400 font-mono font-normal">
+                          <span className="text-[11px] text-[#73766F] font-mono font-normal">
                             ID: #{item.id}
                           </span>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-3 text-xs text-slate-300">
+                      <td className="py-3.5 px-3 text-xs text-[#242820]">
                         {item.architecture_name || (
-                          <span className="text-slate-500 italic">Synthesized Architecture</span>
+                          <span className="text-[#73766F] italic">Synthesized Architecture</span>
                         )}
                       </td>
 
                       <td className="py-3.5 px-3">
                         {isCompleted ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-950/60 border border-sky-400/30 text-sky-300">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#E7F0E8] border border-green-200 text-[#2A5A3F]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#397A55]" />
                             Completed
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900 border border-slate-700 text-slate-400">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#ECE7DC] border border-[#E5E1D8] text-[#4F4A40]">
                             {getStatusLabel(item.status)}
                           </span>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-3 text-xs text-slate-400 font-mono">
+                      <td className="py-3.5 px-3 text-xs text-[#73766F] font-mono">
                         {new Date(item.created_at).toLocaleDateString()}
                       </td>
 
@@ -315,7 +315,7 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
                                   setSelectedDiagramId(item.id);
                                   navigateTo("results");
                                 }}
-                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 hover:brightness-110 shadow-[0_0_10px_rgba(56,189,248,0.25)] transition-all"
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#397A55] text-white hover:bg-[#2E6345] shadow-xs transition-all"
                               >
                                 View Report
                               </button>
@@ -325,37 +325,37 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
                                 <button
                                   type="button"
                                   onClick={() => setDownloadDropdownId(downloadDropdownId === item.id ? null : item.id)}
-                                  className="p-1 rounded-lg text-slate-400 hover:text-sky-300 hover:bg-sky-500/10 border border-transparent hover:border-sky-400/20 transition-all flex items-center justify-center"
+                                  className="p-1 rounded-lg text-[#73766F] hover:text-[#242820] hover:bg-[#F2EFE7] border border-transparent hover:border-[#E5E1D8] transition-all flex items-center justify-center"
                                   title="Download"
                                 >
                                   <span className="material-symbols-outlined text-[18px]">download</span>
                                 </button>
 
                                 {downloadDropdownId === item.id && (
-                                  <div className="absolute right-0 bottom-full mb-1 w-36 bg-[#111828] border border-sky-400/25 rounded-xl py-1 shadow-2xl z-50 animate-fadeIn">
+                                  <div className="absolute right-0 bottom-full mb-1 w-36 bg-white border border-[#E5E1D8] rounded-xl py-1 shadow-xl z-50 animate-fadeIn">
                                     <button
                                       type="button"
                                       onClick={() => handleDownload(item.id, item.filename, "pdf")}
-                                      className="w-full px-3 py-1.5 text-xs text-left text-slate-300 hover:text-white hover:bg-sky-500/15 flex items-center gap-2"
+                                      className="w-full px-3 py-1.5 text-xs text-left text-[#242820] hover:bg-[#F2EFE7] flex items-center gap-2"
                                     >
-                                      <span className="material-symbols-outlined text-[15px] text-red-400">picture_as_pdf</span>
-                                      PDF
+                                      <span className="material-symbols-outlined text-[15px] text-[#A82826]">picture_as_pdf</span>
+                                      Export PDF
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleDownload(item.id, item.filename, "markdown")}
-                                      className="w-full px-3 py-1.5 text-xs text-left text-slate-300 hover:text-white hover:bg-sky-500/15 flex items-center gap-2"
+                                      className="w-full px-3 py-1.5 text-xs text-left text-[#242820] hover:bg-[#F2EFE7] flex items-center gap-2"
                                     >
-                                      <span className="material-symbols-outlined text-[15px] text-sky-400">code</span>
-                                      Markdown
+                                      <span className="material-symbols-outlined text-[15px] text-[#397A55]">code</span>
+                                      Markdown .md
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleDownload(item.id, item.filename, "json")}
-                                      className="w-full px-3 py-1.5 text-xs text-left text-slate-300 hover:text-white hover:bg-sky-500/15 flex items-center gap-2"
+                                      className="w-full px-3 py-1.5 text-xs text-left text-[#242820] hover:bg-[#F2EFE7] flex items-center gap-2"
                                     >
-                                      <span className="material-symbols-outlined text-[15px] text-purple-400">data_object</span>
-                                      JSON
+                                      <span className="material-symbols-outlined text-[15px] text-[#705c30]">data_object</span>
+                                      Raw JSON
                                     </button>
                                   </div>
                                 )}
@@ -368,9 +368,9 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
                                 setSelectedDiagramId(item.id);
                                 navigateTo("progress");
                               }}
-                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-950/60 border border-sky-400/30 text-sky-300 hover:bg-sky-400/10 transition-all flex items-center gap-1"
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F2EFE7] hover:bg-[#eae6de] border border-[#E5E1D8] text-[#242820] transition-all flex items-center gap-1"
                             >
-                              <span className="material-symbols-outlined text-[14px]">sync</span>
+                              <span className="material-symbols-outlined text-[14px] text-[#397A55]">sync</span>
                               Inspect State
                             </button>
                           )}
@@ -388,19 +388,19 @@ export default function History({ token, navigateTo, setSelectedDiagramId, onAut
 
       {/* Floating Download Toast Notification */}
       {downloadToast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-900/95 border border-sky-400/30 text-white shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md animate-fadeIn">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white border border-[#E5E1D8] text-[#242820] shadow-xl animate-fadeIn">
           {downloadToast.type === "loading" ? (
-            <div className="w-4 h-4 border-2 border-sky-400/30 border-t-sky-400 rounded-full animate-spin shrink-0" />
+            <div className="w-4 h-4 border-2 border-green-200 border-t-[#397A55] rounded-full animate-spin shrink-0" />
           ) : (
             <span
               className={`material-symbols-outlined text-[18px] shrink-0 ${
-                downloadToast.type === "success" ? "text-cyan-400" : "text-red-400"
+                downloadToast.type === "success" ? "text-[#397A55]" : "text-[#A82826]"
               }`}
             >
               {downloadToast.type === "success" ? "check_circle" : "error"}
             </span>
           )}
-          <span className="text-xs font-medium text-slate-200">{downloadToast.text}</span>
+          <span className="text-xs font-medium text-[#242820]">{downloadToast.text}</span>
         </div>
       )}
 

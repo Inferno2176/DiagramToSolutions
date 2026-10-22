@@ -117,13 +117,13 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
         <button
           type="button"
           onClick={() => navigateTo("dashboard")}
-          className="inline-flex items-center gap-1.5 text-xs font-label font-semibold text-slate-400 hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#73766F] hover:text-[#242820] transition-colors"
         >
           <span className="material-symbols-outlined text-[17px]">arrow_back</span>
           Return to Operations Dashboard
         </button>
 
-        <span className="text-[11px] font-mono text-sky-400/80 bg-sky-950/60 border border-sky-400/20 px-2.5 py-0.5 rounded-full">
+        <span className="text-[11px] font-mono text-[#5e5548] bg-[#f0e8db] border border-[#E5E1D8] px-2.5 py-0.5 rounded-full font-semibold">
           PIPELINE: MULTI-MODAL INGESTION
         </span>
       </div>
@@ -131,31 +131,31 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
       {/* Title & Introduction */}
       <div className="space-y-1 sm:space-y-1.5">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-          <span className="text-[11px] font-bold uppercase tracking-wider text-primary font-label">
+          <span className="w-2 h-2 rounded-full bg-[#397A55] animate-ping" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#397A55] font-label">
             Architecture Blueprint Ingestion
           </span>
         </div>
-        <h1 className="font-headline font-bold text-2xl sm:text-3xl text-white tracking-tight leading-snug">
+        <h1 className="font-headline font-bold text-2xl sm:text-3xl text-[#242820] tracking-tight leading-snug">
           Upload Architecture Blueprint
         </h1>
-        <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+        <p className="text-xs sm:text-sm text-[#73766F] max-w-2xl leading-relaxed">
           Upload a network layout, microservice block diagram, or database schema. PaddleOCR extracts spatial entity tokens, and Gemini synthesizes production-grade engineering documentation.
         </p>
       </div>
 
       {/* Error Alert */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl p-3 text-xs flex items-center gap-2.5 animate-fadeIn">
-          <span className="material-symbols-outlined text-[18px] text-red-400 shrink-0">error</span>
+        <div className="bg-[#FCE8E7] border border-red-200 text-[#A82826] rounded-xl p-3 text-xs flex items-center gap-2.5 animate-fadeIn">
+          <span className="material-symbols-outlined text-[18px] text-[#A82826] shrink-0">error</span>
           <span>{error}</span>
         </div>
       )}
 
       {/* Main Upload Card */}
-      <div className="glass-panel rounded-2xl p-5 sm:p-7 relative overflow-hidden">
-        {/* Glowing top line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-80" />
+      <div className="bg-white rounded-2xl p-5 sm:p-7 shadow-[0_4px_20px_rgba(46,50,48,0.04)] border border-[#E5E1D8] relative overflow-hidden">
+        {/* Subtle green top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#397A55] to-transparent opacity-80" />
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           
@@ -169,10 +169,10 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
             className={`
               border-2 border-dashed rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 min-h-[190px] sm:min-h-[220px]
               ${dragActive
-                ? "border-primary bg-sky-500/10 shadow-[0_0_30px_rgba(56,189,248,0.25)] scale-[1.01]"
+                ? "border-[#397A55] bg-[#E7F0E8]/40 shadow-sm scale-[1.01]"
                 : file
-                ? "border-primary/60 bg-sky-500/5 shadow-inner"
-                : "border-sky-400/20 hover:border-sky-400/50 hover:bg-white/[0.02]"}
+                ? "border-[#397A55]/60 bg-[#E7F0E8]/20"
+                : "border-[#E5E1D8] hover:border-[#397A55]/60 hover:bg-[#f5f1ea]/50 bg-white"}
             `}
           >
             <input
@@ -183,15 +183,15 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
               className="hidden"
             />
 
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-500/20 to-cyan-400/20 border border-sky-400/30 flex items-center justify-center text-primary shadow-[0_0_15px_rgba(56,189,248,0.2)] mb-3">
+            <div className="w-12 h-12 rounded-xl bg-[#E7F0E8] border border-green-200/60 flex items-center justify-center text-[#397A55] shadow-xs mb-3">
               <span className="material-symbols-outlined text-[26px]">cloud_upload</span>
             </div>
 
-            <h3 className="font-headline font-bold text-base sm:text-lg text-white">
+            <h3 className="font-headline font-bold text-base sm:text-lg text-[#242820]">
               {file ? file.name : "Drag and drop architecture blueprint"}
             </h3>
 
-            <p className="text-xs text-slate-400 mt-1 max-w-sm">
+            <p className="text-xs text-[#73766F] mt-1 max-w-sm">
               {file 
                 ? `Selected file size: ${formatFileSize(file.size)} • Click to replace` 
                 : "Select an image or vector PDF from your workstation"}
@@ -199,16 +199,16 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
 
             {/* Allowed format tags */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-3.5">
-              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-slate-900 border border-sky-400/20 text-sky-300">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-[#f0e8db] border border-[#E5E1D8] text-[#5e5548]">
                 PNG
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-slate-900 border border-sky-400/20 text-sky-300">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-[#f0e8db] border border-[#E5E1D8] text-[#5e5548]">
                 JPG / JPEG
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-slate-900 border border-purple-400/20 text-purple-300">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-[#f8e0a8] border border-amber-300 text-[#554020]">
                 PDF
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-slate-900 border border-slate-700 text-slate-400">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-medium bg-[#eae6de] border border-[#E5E1D8] text-[#242820]">
                 Max 15 MB
               </span>
             </div>
@@ -216,18 +216,18 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
 
           {/* Selected File Details Bar */}
           {file && (
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-sky-400/25 flex items-center justify-between animate-fadeIn">
+            <div className="p-4 rounded-xl bg-[#f5f1ea] border border-[#E5E1D8] flex items-center justify-between animate-fadeIn">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-primary shrink-0">
+                <span className="w-10 h-10 rounded-xl bg-[#E7F0E8] border border-green-200 flex items-center justify-center text-[#397A55] shrink-0">
                   <span className="material-symbols-outlined text-[22px]">
                     {file.name.endsWith(".pdf") ? "picture_as_pdf" : "image"}
                   </span>
                 </span>
                 <div>
-                  <p className="text-sm font-bold text-white truncate max-w-xs sm:max-w-md">
+                  <p className="text-sm font-bold text-[#242820] truncate max-w-xs sm:max-w-md">
                     {file.name}
                   </p>
-                  <p className="text-xs text-slate-400 font-mono">
+                  <p className="text-xs text-[#73766F] font-mono">
                     {formatFileSize(file.size)} • Ready for OCR Ingestion
                   </p>
                 </div>
@@ -239,7 +239,7 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
                   e.stopPropagation();
                   setFile(null);
                 }}
-                className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:text-white hover:bg-red-500/20 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-lg bg-[#FCE8E7] border border-red-200 text-[#A82826] hover:bg-red-100 flex items-center justify-center transition-colors"
                 title="Remove file"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
@@ -249,19 +249,19 @@ export default function UploadDiagram({ token, navigateTo, setSelectedDiagramId,
 
           {/* Submit Actions */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-            <div className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+            <div className="text-xs text-[#73766F] font-mono flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[16px] text-[#397A55]">verified_user</span>
               <span>Encrypted transfer via HMAC-SHA256 authenticated tunnel</span>
             </div>
 
             <button
               type="submit"
               disabled={loading || !file}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-label font-bold text-sm tracking-wide flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-[0_0_24px_rgba(56,189,248,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#397A55] hover:bg-[#2E6345] text-white font-label font-bold text-sm tracking-wide flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Uploading to Cluster...</span>
                 </>
               ) : (

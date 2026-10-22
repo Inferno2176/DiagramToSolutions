@@ -69,31 +69,31 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
       
       {/* Visual Header */}
       <div className="space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-sky-950/60 border border-sky-400/25 text-primary shadow-[0_0_15px_rgba(56,189,248,0.2)]">
-          <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#f0e8db] border border-[#E5E1D8] text-[#5e5548] shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-[#397A55] animate-ping" />
           <span>ASYNCHRONOUS PIPELINE EXECUTION</span>
         </div>
-        <h1 className="font-headline font-bold text-3xl sm:text-4xl text-white tracking-tight">
+        <h1 className="font-headline font-bold text-3xl sm:text-4xl text-[#242820] tracking-tight">
           Synthesizing Architecture Blueprint
         </h1>
-        <p className="text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+        <p className="text-sm text-[#73766F] max-w-lg mx-auto leading-relaxed">
           Running OCR text extraction and multi-modal Gemini architectural reasoning on blueprint #{selectedDiagramId}.
         </p>
       </div>
 
       {/* Main Progress Container */}
-      <div className="glass-panel rounded-2xl p-8 relative overflow-hidden text-left">
-        {/* Top glowing bar */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-80" />
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E5E1D8] shadow-[0_4px_20px_rgba(46,50,48,0.04)] relative overflow-hidden text-left">
+        {/* Top green accent bar */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#397A55] to-transparent opacity-80" />
 
         {status === "FAILED" || error ? (
           <div className="space-y-6 text-center py-6">
-            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+            <div className="w-16 h-16 rounded-2xl bg-[#FCE8E7] border border-red-200 text-[#A82826] flex items-center justify-center mx-auto shadow-sm">
               <span className="material-symbols-outlined text-[32px]">warning</span>
             </div>
             <div className="space-y-2">
-              <h3 className="font-headline font-bold text-xl text-white">Pipeline Execution Halted</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+              <h3 className="font-headline font-bold text-xl text-[#242820]">Pipeline Execution Halted</h3>
+              <p className="text-xs text-[#73766F] max-w-md mx-auto leading-relaxed">
                 {error || "An error occurred during OCR text extraction or Gemini multi-modal architecture synthesis."}
               </p>
             </div>
@@ -101,7 +101,7 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
               <button
                 type="button"
                 onClick={() => runAnalysis()}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 text-xs font-bold shadow-[0_0_15px_rgba(56,189,248,0.3)] hover:brightness-110 transition-all flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl bg-[#397A55] hover:bg-[#2E6345] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">sync</span>
                 Retry Analysis
@@ -109,7 +109,7 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
               <button
                 type="button"
                 onClick={() => navigateTo("dashboard")}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 border border-sky-400/20 text-slate-300 text-xs font-semibold hover:text-white transition-all"
+                className="px-5 py-2.5 rounded-xl bg-white border border-[#E5E1D8] text-[#242820] hover:bg-[#F2EFE7] text-xs font-semibold transition-all shadow-xs"
               >
                 Return to Dashboard
               </button>
@@ -117,24 +117,24 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
           </div>
         ) : status === "COMPLETED" ? (
           <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.3)] animate-bounce">
+            <div className="w-16 h-16 rounded-2xl bg-[#E7F0E8] border border-green-200 text-[#397A55] flex items-center justify-center shadow-sm animate-bounce">
               <span className="material-symbols-outlined text-[36px]">check_circle</span>
             </div>
             <div>
-              <h3 className="font-headline font-bold text-xl text-white">Synthesis Complete</h3>
-              <p className="text-xs text-slate-400 mt-1">Redirecting to Architecture Studio...</p>
+              <h3 className="font-headline font-bold text-xl text-[#242820]">Synthesis Complete</h3>
+              <p className="text-xs text-[#73766F] mt-1">Redirecting to Architecture Studio...</p>
             </div>
           </div>
         ) : (
           /* Processing Stages Stepper */
           <div className="space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-sky-500/10">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary font-label">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E5E1D8]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#397A55] font-label">
                 Pipeline Telemetry Stepper
               </span>
               <div className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <span className="text-xs font-mono text-slate-300">STAGE 0{activeStage} / 04</span>
+                <span className="w-4 h-4 border-2 border-green-200 border-t-[#397A55] rounded-full animate-spin" />
+                <span className="text-xs font-mono text-[#73766F] font-semibold">STAGE 0{activeStage} / 04</span>
               </div>
             </div>
 
@@ -149,23 +149,23 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
                     className={`
                       p-4 rounded-xl border transition-all flex items-start gap-3.5
                       ${isCurrent
-                        ? "bg-sky-500/10 border-primary/40 shadow-[0_0_15px_rgba(56,189,248,0.15)]"
+                        ? "bg-[#E7F0E8]/40 border-green-200/80 shadow-xs"
                         : isDone
-                        ? "bg-slate-900/40 border-emerald-500/20"
-                        : "bg-slate-900/20 border-slate-800 opacity-60"}
+                        ? "bg-[#f5f1ea] border-[#E5E1D8]"
+                        : "bg-[#faf6f0] border-[#E5E1D8]/60 opacity-60"}
                     `}
                   >
                     <div className="mt-0.5 shrink-0">
                       {isDone ? (
-                        <span className="w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-full bg-[#397A55] text-white flex items-center justify-center shadow-xs">
                           <span className="material-symbols-outlined text-[16px]">check</span>
                         </span>
                       ) : isCurrent ? (
-                        <span className="w-6 h-6 rounded-full bg-sky-500/20 text-primary border border-primary/40 flex items-center justify-center animate-pulse">
-                          <span className="w-2 h-2 rounded-full bg-primary" />
+                        <span className="w-6 h-6 rounded-full bg-[#E7F0E8] text-[#397A55] border border-green-200 flex items-center justify-center animate-pulse">
+                          <span className="w-2 h-2 rounded-full bg-[#397A55]" />
                         </span>
                       ) : (
-                        <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-500 border border-slate-700 flex items-center justify-center font-mono text-[11px]">
+                        <span className="w-6 h-6 rounded-full bg-[#f0ece4] text-[#73766F] border border-[#E5E1D8] flex items-center justify-center font-mono text-[11px]">
                           {stage.id}
                         </span>
                       )}
@@ -173,21 +173,21 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
 
                     <div className="space-y-0.5 flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className={`text-sm font-bold ${isCurrent ? "text-white" : isDone ? "text-slate-200" : "text-slate-400"}`}>
+                        <h4 className={`text-sm font-bold ${isCurrent ? "text-[#242820]" : isDone ? "text-[#242820]" : "text-[#73766F]"}`}>
                           {stage.title}
                         </h4>
                         {isCurrent && (
-                          <span className="text-[10px] font-mono text-primary uppercase font-bold tracking-wider">
+                          <span className="text-[10px] font-mono text-[#397A55] uppercase font-bold tracking-wider">
                             Active Stream
                           </span>
                         )}
                         {isDone && (
-                          <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold tracking-wider">
+                          <span className="text-[10px] font-mono text-[#2A5A3F] uppercase font-bold tracking-wider">
                             Verified
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">
+                      <p className="text-xs text-[#73766F] leading-relaxed">
                         {stage.desc}
                       </p>
                     </div>
@@ -197,7 +197,7 @@ export default function AnalysisProgress({ token, navigateTo, selectedDiagramId,
             </div>
 
             <div className="pt-2 text-center">
-              <span className="text-xs font-mono text-slate-500">
+              <span className="text-xs font-mono text-[#73766F]">
                 Average processing latency: 6.4s • PaddleOCR + Gemini 2.5 Flash
               </span>
             </div>

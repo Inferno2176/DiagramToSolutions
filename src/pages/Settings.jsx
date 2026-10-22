@@ -5,7 +5,7 @@ export default function Settings({ token, navigateTo, onAuthError }) {
     username: "",
     email: "",
     notifications_enabled: true,
-    theme: "dark",
+    theme: "light",
     default_export_format: "pdf",
     api_key_placeholder: ""
   });
@@ -83,8 +83,8 @@ export default function Settings({ token, navigateTo, onAuthError }) {
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex flex-col items-center justify-center min-h-[500px]">
-        <div className="w-12 h-12 border-3 border-sky-400/20 border-t-primary rounded-full animate-spin mb-4" />
-        <p className="text-slate-300 text-sm font-label font-medium tracking-wide">
+        <div className="w-12 h-12 border-3 border-[#E7F0E8] border-t-[#397A55] rounded-full animate-spin mb-4" />
+        <p className="text-[#73766F] text-sm font-label font-medium tracking-wide">
           Loading workstation configuration...
         </p>
       </div>
@@ -99,13 +99,13 @@ export default function Settings({ token, navigateTo, onAuthError }) {
         <button
           type="button"
           onClick={() => navigateTo("dashboard")}
-          className="inline-flex items-center gap-2 text-xs font-label font-semibold text-slate-400 hover:text-primary transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-[#73766F] hover:text-[#242820] transition-colors"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Return to Operations Dashboard
         </button>
 
-        <span className="text-xs font-mono text-sky-400/80 bg-sky-950/60 border border-sky-400/20 px-3 py-1 rounded-full">
+        <span className="text-xs font-mono text-[#5e5548] bg-[#f0e8db] border border-[#E5E1D8] px-3 py-1 rounded-full font-semibold">
           WORKSTATION PREFERENCES
         </span>
       </div>
@@ -113,55 +113,55 @@ export default function Settings({ token, navigateTo, onAuthError }) {
       {/* Title */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-primary font-label">
+          <span className="w-2 h-2 rounded-full bg-[#397A55]" />
+          <span className="text-xs font-bold uppercase tracking-wider text-[#397A55] font-label">
             Engineering Configuration
           </span>
         </div>
-        <h1 className="font-headline font-bold text-3xl sm:text-4xl text-white tracking-tight leading-tight">
+        <h1 className="font-headline font-bold text-3xl sm:text-4xl text-[#242820] tracking-tight leading-tight">
           Workstation Settings
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
+        <p className="text-sm text-[#73766F] max-w-2xl leading-relaxed">
           Manage your engineering identity, notification triggers, and default architecture export conventions.
         </p>
       </div>
 
       {/* Success Banner */}
       {success && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl p-4 text-xs flex items-center gap-3 animate-fadeIn">
-          <span className="material-symbols-outlined text-[20px] text-emerald-400">check_circle</span>
+        <div className="bg-[#E7F0E8] border border-green-200 text-[#2A5A3F] rounded-2xl p-4 text-xs flex items-center gap-3 animate-fadeIn">
+          <span className="material-symbols-outlined text-[20px] text-[#397A55]">check_circle</span>
           <span>Configuration saved successfully across cluster profile.</span>
         </div>
       )}
 
       {/* Error Banner */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-4 text-xs flex items-center gap-3 animate-fadeIn">
-          <span className="material-symbols-outlined text-[20px] text-red-400">error</span>
+        <div className="bg-[#FCE8E7] border border-red-200 text-[#A82826] rounded-2xl p-4 text-xs flex items-center gap-3 animate-fadeIn">
+          <span className="material-symbols-outlined text-[20px] text-[#A82826]">error</span>
           <span>{error}</span>
         </div>
       )}
 
       {/* Settings Form Container */}
-      <div className="glass-panel rounded-2xl p-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-80" />
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E5E1D8] shadow-[0_4px_20px_rgba(46,50,48,0.04)] relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#397A55] to-transparent opacity-80" />
 
         <form onSubmit={handleSubmit} className="space-y-8">
           
           {/* Identity Section */}
           <div className="space-y-4">
-            <h3 className="font-headline font-bold text-lg text-white flex items-center gap-2 pb-2 border-b border-sky-400/10">
-              <span className="material-symbols-outlined text-primary text-[20px]">badge</span>
+            <h3 className="font-headline font-bold text-lg text-[#242820] flex items-center gap-2 pb-2 border-b border-[#E5E1D8]">
+              <span className="material-symbols-outlined text-[#397A55] text-[20px]">badge</span>
               Identity &amp; Authentication Directory
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-label font-semibold text-slate-200" htmlFor="settings-user">
+                <label className="text-xs font-semibold text-[#242820]" htmlFor="settings-user">
                   Username
                 </label>
                 <div className="relative flex items-center">
-                  <span className="material-symbols-outlined absolute left-3.5 text-[18px] text-slate-400 pointer-events-none">
+                  <span className="material-symbols-outlined absolute left-3.5 text-[18px] text-[#73766F] pointer-events-none">
                     person
                   </span>
                   <input
@@ -169,17 +169,17 @@ export default function Settings({ token, navigateTo, onAuthError }) {
                     type="text"
                     value={settings.username || ""}
                     disabled
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-900/60 border border-slate-700/80 rounded-xl text-slate-400 text-xs font-mono outline-none cursor-not-allowed shadow-inner"
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#eae6de] border border-[#E5E1D8] rounded-xl text-[#73766F] text-xs font-mono outline-none cursor-not-allowed shadow-inner"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-label font-semibold text-slate-200" htmlFor="settings-email">
+                <label className="text-xs font-semibold text-[#242820]" htmlFor="settings-email">
                   Work Email
                 </label>
                 <div className="relative flex items-center">
-                  <span className="material-symbols-outlined absolute left-3.5 text-[18px] text-slate-400 pointer-events-none">
+                  <span className="material-symbols-outlined absolute left-3.5 text-[18px] text-[#73766F] pointer-events-none">
                     alternate_email
                   </span>
                   <input
@@ -188,7 +188,7 @@ export default function Settings({ token, navigateTo, onAuthError }) {
                     value={settings.email || ""}
                     onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                     placeholder="engineer@company.com"
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#0f172a]/70 border border-slate-700/80 rounded-xl text-white placeholder:text-slate-500 text-xs font-body outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all shadow-inner"
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#f5f1ea] border border-[#E5E1D8] rounded-xl text-[#242820] placeholder:text-[#73766F] text-xs font-body outline-none focus:border-[#397A55] focus:ring-1 focus:ring-[#397A55]/30 transition-all shadow-inner"
                   />
                 </div>
               </div>
@@ -197,8 +197,8 @@ export default function Settings({ token, navigateTo, onAuthError }) {
 
           {/* Export Conventions */}
           <div className="space-y-4">
-            <h3 className="font-headline font-bold text-lg text-white flex items-center gap-2 pb-2 border-b border-sky-400/10">
-              <span className="material-symbols-outlined text-primary text-[20px]">download</span>
+            <h3 className="font-headline font-bold text-lg text-[#242820] flex items-center gap-2 pb-2 border-b border-[#E5E1D8]">
+              <span className="material-symbols-outlined text-[#397A55] text-[20px]">download</span>
               Default Specification Export Format
             </h3>
 
@@ -214,23 +214,23 @@ export default function Settings({ token, navigateTo, onAuthError }) {
                   className={`
                     p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between
                     ${settings.default_export_format === fmt.id
-                      ? "bg-sky-500/10 border-primary shadow-[0_0_15px_rgba(56,189,248,0.2)]"
-                      : "bg-slate-900/60 border-slate-800 hover:border-slate-700"}
+                      ? "bg-[#E7F0E8]/50 border-green-200/90 shadow-xs"
+                      : "bg-[#f5f1ea] border-[#E5E1D8] hover:border-[#397A55]/40"}
                   `}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="material-symbols-outlined text-[20px] text-primary">{fmt.icon}</span>
+                    <span className="material-symbols-outlined text-[20px] text-[#397A55]">{fmt.icon}</span>
                     <input
                       type="radio"
                       name="export_format"
                       checked={settings.default_export_format === fmt.id}
                       onChange={() => setSettings({ ...settings, default_export_format: fmt.id })}
-                      className="accent-primary"
+                      className="accent-[#397A55]"
                     />
                   </div>
                   <div className="mt-3">
-                    <p className="text-xs font-bold text-white">{fmt.label}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{fmt.desc}</p>
+                    <p className="text-xs font-bold text-[#242820]">{fmt.label}</p>
+                    <p className="text-[11px] text-[#73766F] mt-0.5">{fmt.desc}</p>
                   </div>
                 </div>
               ))}
@@ -239,15 +239,15 @@ export default function Settings({ token, navigateTo, onAuthError }) {
 
           {/* Telemetry & Notifications Toggle */}
           <div className="space-y-4">
-            <h3 className="font-headline font-bold text-lg text-white flex items-center gap-2 pb-2 border-b border-sky-400/10">
-              <span className="material-symbols-outlined text-primary text-[20px]">notifications</span>
+            <h3 className="font-headline font-bold text-lg text-[#242820] flex items-center gap-2 pb-2 border-b border-[#E5E1D8]">
+              <span className="material-symbols-outlined text-[#397A55] text-[20px]">notifications</span>
               Pipeline Notifications &amp; Telemetry
             </h3>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 border border-sky-400/15">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#f5f1ea] border border-[#E5E1D8]">
               <div className="space-y-0.5">
-                <p className="text-xs font-bold text-white">Asynchronous Synthesis Notifications</p>
-                <p className="text-[11px] text-slate-400">Receive real-time completion status for multi-modal OCR runs</p>
+                <p className="text-xs font-bold text-[#242820]">Asynchronous Synthesis Notifications</p>
+                <p className="text-[11px] text-[#73766F]">Receive real-time completion status for multi-modal OCR runs</p>
               </div>
 
               <button
@@ -255,12 +255,12 @@ export default function Settings({ token, navigateTo, onAuthError }) {
                 onClick={handleToggle}
                 className={`
                   w-12 h-6 flex items-center rounded-full p-1 transition-colors
-                  ${settings.notifications_enabled ? "bg-primary" : "bg-slate-700"}
+                  ${settings.notifications_enabled ? "bg-[#397A55]" : "bg-[#d4ccbf]"}
                 `}
               >
                 <div
                   className={`
-                    bg-slate-950 w-4 h-4 rounded-full shadow-md transform transition-transform
+                    bg-white w-4 h-4 rounded-full shadow-md transform transition-transform
                     ${settings.notifications_enabled ? "translate-x-6" : "translate-x-0"}
                   `}
                 />
@@ -273,11 +273,11 @@ export default function Settings({ token, navigateTo, onAuthError }) {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-950 font-label font-bold text-xs shadow-[0_0_20px_rgba(56,189,248,0.35)] hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl bg-[#397A55] hover:bg-[#2E6345] text-white font-label font-bold text-xs shadow-sm active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
             >
               {saving ? (
                 <>
-                  <span className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Saving Changes...</span>
                 </>
               ) : (

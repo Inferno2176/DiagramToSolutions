@@ -35,6 +35,23 @@ class TokenData(BaseModel):
     username: Optional[str] = None
     user_id: Optional[int] = None
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., max_length=255)
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
+    confirm_password: str = Field(..., min_length=8)
+
+class VerifyTokenResponse(BaseModel):
+    valid: bool
+    reason: Optional[str] = None
+
+class MessageResponse(BaseModel):
+    message: str
+    detail: Optional[str] = None
+    dev_token: Optional[str] = None  # Included only in local dev mode when configured
+
 
 # --- Project Schemas ---
 

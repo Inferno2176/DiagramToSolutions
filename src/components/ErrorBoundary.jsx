@@ -28,19 +28,19 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-[400px] flex items-center justify-center p-6">
-          <div className="glass-card max-w-lg w-full p-8 border border-red-500/30 text-center space-y-6">
-            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+        <div className="min-h-[400px] flex items-center justify-center p-6 bg-surface">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-8 border border-red-200 shadow-[0_4px_20px_rgba(46,50,48,0.06)] text-center space-y-6">
+            <div className="w-14 h-14 rounded-full bg-[#FCE8E7] border border-red-200 text-[#A82826] flex items-center justify-center mx-auto shadow-xs">
               <AlertTriangle className="w-7 h-7" />
             </div>
 
             <div>
-              <h2 className="text-xl font-bold text-white">Something went wrong</h2>
-              <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+              <h2 className="text-xl font-headline font-bold text-[#242820]">Something went wrong</h2>
+              <p className="text-sm text-[#73766F] mt-2 leading-relaxed">
                 An unexpected UI rendering issue occurred. Your analysis data and OCR results in the backend remain safe.
               </p>
               {this.state.error && (
-                <div className="mt-4 bg-dark-950/80 border border-dark-700 rounded-lg p-3 text-left font-mono text-xs text-red-300 overflow-x-auto max-h-32">
+                <div className="mt-4 bg-[#f5f1ea] border border-[#E5E1D8] rounded-xl p-3 text-left font-mono text-xs text-[#A82826] overflow-x-auto max-h-32">
                   {this.state.error.toString()}
                 </div>
               )}
@@ -49,7 +49,7 @@ export default class ErrorBoundary extends React.Component {
             <div className="flex items-center justify-center gap-4 pt-2">
               <button
                 onClick={this.handleReset}
-                className="glass-btn-primary flex items-center gap-2 text-sm"
+                className="px-4 py-2 rounded-xl bg-[#397A55] hover:bg-[#2E6345] text-white font-semibold flex items-center gap-2 text-xs shadow-sm transition-all"
               >
                 <RefreshCw className="w-4 h-4" />
                 Try Again
@@ -60,7 +60,7 @@ export default class ErrorBoundary extends React.Component {
                   if (this.props.navigateTo) this.props.navigateTo("dashboard");
                   else window.location.href = "/";
                 }}
-                className="glass-btn-secondary flex items-center gap-2 text-sm"
+                className="px-4 py-2 rounded-xl bg-white border border-[#E5E1D8] hover:bg-[#F2EFE7] text-[#242820] font-semibold flex items-center gap-2 text-xs shadow-xs transition-all"
               >
                 <Home className="w-4 h-4" />
                 Go to Dashboard

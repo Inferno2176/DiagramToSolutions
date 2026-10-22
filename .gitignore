@@ -40,5 +40,6 @@ backend/.env.local
 
 # Uploads
 backend/uploads/
+uploads/dev_emails/
 
 

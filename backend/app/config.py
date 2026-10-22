@@ -24,6 +24,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_POSTGRES_URL)
 # Normalize postgresql:// to postgresql+psycopg:// for psycopg3 compatibility if specified without driver
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("sqlite:///") and not DATABASE_URL.startswith("sqlite:////"):
+    rel_path = DATABASE_URL[len("sqlite:///"):]
+    if not os.path.isabs(rel_path):
+        DATABASE_URL = f"sqlite:///{os.path.join(BACKEND_DIR, rel_path).replace(os.sep, '/')}"
 
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretjwtkeyforlocaldevelopment123!")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -32,6 +36,21 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(BACKEND_DIR, "uploads"))
 
 # Ensure upload directory exists
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# --- Frontend & Password Reset Configuration ---
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "20"))
+
+# --- Email / SMTP Configuration ---
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@diagramtosolutions.com")
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "DiagramToSolutions Security")
+SMTP_TLS = os.getenv("SMTP_TLS", "true").lower() in ("true", "1", "yes")
+SMTP_SSL = os.getenv("SMTP_SSL", "false").lower() in ("true", "1", "yes")
+EMAIL_DEV_MODE = os.getenv("EMAIL_DEV_MODE", "true").lower() in ("true", "1", "yes")
 
 # --- Agent Model Shifter Configuration ---
 MAX_MODEL_SWITCHES = int(os.getenv("MAX_MODEL_SWITCHES", "5"))
